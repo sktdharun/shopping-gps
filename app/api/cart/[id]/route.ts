@@ -1,6 +1,7 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { getDb } from '../../../../lib/mongodb';
 import { ObjectId } from 'mongodb';
+import { verifyToken } from '../../../../lib/auth';
 
 // PUT /api/cart/[id] - update cart item quantity
 export async function PUT(
@@ -9,13 +10,10 @@ export async function PUT(
 ) {
   try {
     const { id: cartItemId } = await params;
-    const token = request.headers.get('authorization')?.replace('Bearer ', '');
-    if (!token) {
-      return NextResponse.json({ message: 'Unauthorized' }, { status: 401 });
-    }
 
-    const tokenData = JSON.parse(Buffer.from(token.split('.')[1], 'base64').toString());
-    const userId = tokenData._id;
+    // Verify token
+    const payload = verifyToken(request) as { _id: string; role: string };
+    const userId = payload._id;
 
     const body = await request.json();
     const { quantity } = body;
@@ -55,13 +53,10 @@ export async function DELETE(
 ) {
   try {
     const { id: cartItemId } = await params;
-    const token = request.headers.get('authorization')?.replace('Bearer ', '');
-    if (!token) {
-      return NextResponse.json({ message: 'Unauthorized' }, { status: 401 });
-    }
 
-    const tokenData = JSON.parse(Buffer.from(token.split('.')[1], 'base64').toString());
-    const userId = tokenData._id;
+    // Verify token
+    const payload = verifyToken(request) as { _id: string; role: string };
+    const userId = payload._id;
 
     const db = await getDb();
 

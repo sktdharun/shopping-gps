@@ -3,13 +3,21 @@ import { getDb } from '../../../../lib/mongodb';
 import { ObjectId } from 'mongodb';
 import { promises as fs } from 'fs';
 import path from 'path';
+import { verifyToken } from '../../../../lib/auth';
 
 export async function GET(request: NextRequest, { params }: { params: Promise<{ id: string }> }) {
   try {
+    // Verify token
+    const payload = verifyToken(request) as { _id: string; role: string };
+
     const { id: stockId } = await params;
     const db = await getDb();
 
-    const stock = await db.collection('stocks').findOne({ _id: new ObjectId(stockId) });
+    const query: any = { _id: new ObjectId(stockId) };
+    if (payload.role !== 'admin') {
+      query.isActive = true;
+    }
+    const stock = await db.collection('stocks').findOne(query);
     if (!stock) {
       return NextResponse.json({ message: 'Stock not found' }, { status: 404 });
     }
@@ -23,6 +31,12 @@ export async function GET(request: NextRequest, { params }: { params: Promise<{ 
 
 export async function PUT(request: NextRequest, { params }: { params: Promise<{ id: string }> }) {
   try {
+    // Verify token and check admin role
+    const payload = verifyToken(request) as { _id: string; role: string };
+    if (payload.role !== 'admin') {
+      return NextResponse.json({ message: 'Unauthorized' }, { status: 403 });
+    }
+
     const { id: stockId } = await params;
     const formData = await request.formData();
     const stockData = JSON.parse(formData.get('stockData') as string);
@@ -91,6 +105,12 @@ export async function PUT(request: NextRequest, { params }: { params: Promise<{ 
 
 export async function DELETE(request: NextRequest, { params }: { params: Promise<{ id: string }> }) {
   try {
+    // Verify token and check admin role
+    const payload = verifyToken(request) as { _id: string; role: string };
+    if (payload.role !== 'admin') {
+      return NextResponse.json({ message: 'Unauthorized' }, { status: 403 });
+    }
+
     const { id: stockId } = await params;
     const db = await getDb();
 

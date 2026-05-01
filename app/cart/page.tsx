@@ -3,6 +3,7 @@
 import { useState, useEffect, useMemo } from 'react';
 import { useRouter } from 'next/navigation';
 import { useCart } from '@/lib/CartContext';
+import SessionExpiredModal from '../components/SessionExpiredModal';
 
 interface CartItem {
   _id: string;
@@ -57,6 +58,7 @@ export default function CartPage() {
   const [error, setError] = useState<string | null>(null);
   const [filterAttributes, setFilterAttributes] = useState<FilterAttribute[]>([]);
   const [filterValues, setFilterValues] = useState<FilterValue[]>([]);
+  const [showSessionExpiredModal, setShowSessionExpiredModal] = useState(false);
 
   useEffect(() => {
     const checkAuth = async () => {
@@ -67,10 +69,29 @@ export default function CartPage() {
       }
       // Fetch filter attributes and values for display
       try {
+        const token = localStorage.getItem('token');
+        const headers = token ? { Authorization: `Bearer ${token}` } : {};
+
         const [attrRes, valRes] = await Promise.all([
-          fetch('/api/filter-attributes'),
-          fetch('/api/filter-values')
+          fetch('/api/filter-attributes', { headers }),
+          fetch('/api/filter-values', { headers })
         ]);
+
+        if (!attrRes.ok && attrRes.status === 401) {
+          const data = await attrRes.json();
+          if (data.message === 'Token expired') {
+            setShowSessionExpiredModal(true);
+            return;
+          }
+        }
+        if (!valRes.ok && valRes.status === 401) {
+          const data = await valRes.json();
+          if (data.message === 'Token expired') {
+            setShowSessionExpiredModal(true);
+            return;
+          }
+        }
+
         if (attrRes.ok) setFilterAttributes(await attrRes.json());
         if (valRes.ok) setFilterValues(await valRes.json());
       } catch (err) {
@@ -311,6 +332,11 @@ export default function CartPage() {
           </div>
         )}
       </div>
+
+      <SessionExpiredModal
+        isOpen={showSessionExpiredModal}
+        onClose={() => setShowSessionExpiredModal(false)}
+      />
     </div>
   );
 }

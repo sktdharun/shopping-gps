@@ -6,7 +6,7 @@ import { verifyToken } from '../../../lib/auth';
 export async function GET(request: NextRequest) {
   try {
     // Verify token and check if user is admin
-    let payload;
+    let payload: any;
     try {
       payload = verifyToken(request);
     } catch (error) {
@@ -101,7 +101,7 @@ export async function GET(request: NextRequest) {
 
 export async function PATCH(request: NextRequest) {
   try {
-    let payload;
+    let payload: any;
     try {
       payload = verifyToken(request);
     } catch (error) {

@@ -127,6 +127,7 @@ export default function Header() {
                     <button onClick={() => { router.push('/admin/users'); setDropdownOpen(false); }} className="block w-full text-left px-4 py-2 hover:bg-gray-100">User Management</button>
                     <a href="/stock-management" className="block px-4 py-2 hover:bg-gray-100">Stock Management</a>
                     <a href="/stock-overview" className="block px-4 py-2 hover:bg-gray-100">Stock Overview</a>
+                    <a href="/delivery-management" className="block px-4 py-2 hover:bg-gray-100">Delivery Management</a>
                   </>
                 )}
                 <button
@@ -139,20 +140,22 @@ export default function Header() {
             )}
           </div>
         )}
-        <button
-          onClick={() => router.push('/cart')}
-          className="relative p-2 hover:bg-blue-700 rounded-full transition-colors"
-          aria-label="Shopping Cart"
-        >
-          <svg className="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M3 3h2l.4 2M7 13h10l4-8H5.4M7 13L5.4 5M7 13l-2.293 2.293c-.63.63-.184 1.707.707 1.707H17m0 0a2 2 0 100 4 2 2 0 000-4zm-8 2a2 2 0 11-4 0 2 2 0 014 0z" />
-          </svg>
-          {cartCount > 0 && (
-            <span className="absolute -top-1 -right-1 bg-red-500 text-white text-xs font-bold rounded-full h-5 w-5 flex items-center justify-center">
-              {cartCount > 99 ? '99+' : cartCount}
-            </span>
-          )}
-        </button>
+        {!isAdmin && (
+          <button
+            onClick={() => router.push('/cart')}
+            className="relative p-2 hover:bg-blue-700 rounded-full transition-colors"
+            aria-label="Shopping Cart"
+          >
+            <svg className="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M3 3h2l.4 2M7 13h10l4-8H5.4M7 13L5.4 5M7 13l-2.293 2.293c-.63.63-.184 1.707.707 1.707H17m0 0a2 2 0 100 4 2 2 0 000-4zm-8 2a2 2 0 11-4 0 2 2 0 014 0z" />
+            </svg>
+            {cartCount > 0 && (
+              <span className="absolute -top-1 -right-1 bg-red-500 text-white text-xs font-bold rounded-full h-5 w-5 flex items-center justify-center">
+                {cartCount > 99 ? '99+' : cartCount}
+              </span>
+            )}
+          </button>
+        )}
       </div>
     </header>
   );

@@ -4,6 +4,7 @@ import { useState, useEffect, useMemo } from 'react';
 import { useRouter } from 'next/navigation';
 import FilterBar from './shop/components/FilterBar';
 import ProductGrid from './shop/components/ProductGrid';
+import SessionExpiredModal from './components/SessionExpiredModal';
 
 interface Category {
   _id: string;
@@ -40,12 +41,14 @@ interface Product {
   categoryName?: string;
   subcategoryName?: string;
   subSubcategoryName?: string;
+  quantity: number;
 }
 
 export default function Home() {
   const router = useRouter();
 
   const [user, setUser] = useState<any>(null);
+  const [isAdmin, setIsAdmin] = useState(false);
   const [categories, setCategories] = useState<Category[]>([]);
   const [products, setProducts] = useState<Product[]>([]);
   const [loading, setLoading] = useState(true);
@@ -53,6 +56,7 @@ export default function Home() {
   const [selectedCategory, setSelectedCategory] = useState<string>('');
   const [selectedSubcategory, setSelectedSubcategory] = useState<string>('');
   const [selectedSubSubcategory, setSelectedSubSubcategory] = useState<string>('');
+  const [showSessionExpiredModal, setShowSessionExpiredModal] = useState(false);
 
   useEffect(() => {
     const token = localStorage.getItem('token');
@@ -60,6 +64,7 @@ export default function Home() {
       try {
         const payload = JSON.parse(atob(token.split('.')[1]));
         setUser(payload);
+        setIsAdmin(payload.role === 'admin');
       } catch (error) {
         console.error('Invalid token');
         localStorage.removeItem('token');
@@ -74,21 +79,39 @@ export default function Home() {
   useEffect(() => {
     const fetchShopData = async () => {
       try {
+        const token = localStorage.getItem('token');
+        const headers = token ? { Authorization: `Bearer ${token}` } : {};
+
         const [catRes, productsRes] = await Promise.all([
 
-          fetch('/api/categories'),
+          fetch('/api/categories', { headers }),
 
-          fetch('/api/shop-data')
+          fetch('/api/shop-data', { headers })
 
         ]);
 
 
+        if (!catRes.ok) {
+          if (catRes.status === 401) {
+            const data = await catRes.json();
+            if (data.message === 'Token expired') {
+              setShowSessionExpiredModal(true);
+              return;
+            }
+          }
+          throw new Error('Failed to fetch categories');
+        }
 
-        if (!catRes.ok) throw new Error('Failed to fetch categories');
-
-        if (!productsRes.ok) throw new Error('Failed to fetch products');
-
-
+        if (!productsRes.ok) {
+          if (productsRes.status === 401) {
+            const data = await productsRes.json();
+            if (data.message === 'Token expired') {
+              setShowSessionExpiredModal(true);
+              return;
+            }
+          }
+          throw new Error('Failed to fetch products');
+        }
 
         const [categoriesData, productsData] = await Promise.all([
 
@@ -97,8 +120,6 @@ export default function Home() {
           productsRes.json()
 
         ]);
-
-
 
         setCategories(categoriesData);
 
@@ -114,8 +135,6 @@ export default function Home() {
       fetchShopData();
     }
   }, [user]);
-
-  const isAdmin = user?.role === 'admin';
 
   // Process categories into hierarchical structure
   const { categories: topLevelCategories, subcategories, subSubcategories } = useMemo(() => {
@@ -231,7 +250,7 @@ export default function Home() {
                   )}
                 </div>
 
-                <ProductGrid products={filteredProducts} />
+                <ProductGrid products={filteredProducts} isAdmin={isAdmin} />
               </div>
 
 
@@ -244,6 +263,11 @@ export default function Home() {
       <footer className="bg-gray-800 text-white p-4 text-center">
         <p>Footer content. Dummy text. © 2026 Shopping Site. All rights reserved.</p>
       </footer>
+
+      <SessionExpiredModal
+        isOpen={showSessionExpiredModal}
+        onClose={() => setShowSessionExpiredModal(false)}
+      />
     </div>
   );
 }

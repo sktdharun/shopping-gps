@@ -1,8 +1,12 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { getDb } from '../../../lib/mongodb';
+import { verifyToken } from '../../../lib/auth';
 
 export async function GET(request: NextRequest) {
   try {
+    // Verify token
+    const payload = verifyToken(request) as { _id: string; role: string };
+
     const db = await getDb();
 
     // Get all collection names
@@ -23,7 +27,7 @@ export async function GET(request: NextRequest) {
     const filterValues = await db.collection('filter_values').find({}).toArray();
     console.log('Filter values sample:', filterValues.slice(0, 3));
 
-    // Fetch all products from stocks collection
+    // Fetch active products for landing screen (same for all roles)
     const products = await db.collection('stocks').find({ isActive: true }).toArray();
     console.log('Products sample:', products.slice(0, 3));
 
@@ -45,6 +49,6 @@ export async function GET(request: NextRequest) {
     });
   } catch (error) {
     console.error('Error fetching data:', error);
-    return NextResponse.json({ message: 'Server error', error: error.message }, { status: 500 });
+    return NextResponse.json({ message: 'Server error', error: error instanceof Error ? error.message : 'Unknown error' }, { status: 500 });
   }
 }

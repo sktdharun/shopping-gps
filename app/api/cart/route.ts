@@ -1,19 +1,15 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { getDb } from '../../../lib/mongodb';
 import { ObjectId } from 'mongodb';
+import { verifyToken } from '../../../lib/auth';
 
 // GET /api/cart - fetch user's cart
 export async function GET(request: NextRequest) {
   try {
-    const token = request.headers.get('authorization')?.replace('Bearer ', '');
-    if (!token) {
-      return NextResponse.json({ message: 'Unauthorized' }, { status: 401 });
-    }
-
-    // Verify token and get user (you may want to use a proper auth middleware)
+    // Verify token
+    const payload = verifyToken(request) as { _id: string; role: string };
     const db = await getDb();
-    const tokenData = JSON.parse(Buffer.from(token.split('.')[1], 'base64').toString());
-    const userId = tokenData._id;
+    const userId = payload._id;
 
     const cart = await db.collection('cart').find({ userId: new ObjectId(userId) }).toArray();
 
@@ -47,13 +43,9 @@ export async function GET(request: NextRequest) {
 // POST /api/cart - add item to cart
 export async function POST(request: NextRequest) {
   try {
-    const token = request.headers.get('authorization')?.replace('Bearer ', '');
-    if (!token) {
-      return NextResponse.json({ message: 'Unauthorized' }, { status: 401 });
-    }
-
-    const tokenData = JSON.parse(Buffer.from(token.split('.')[1], 'base64').toString());
-    const userId = tokenData._id;
+    // Verify token
+    const payload = verifyToken(request) as { _id: string; role: string };
+    const userId = payload._id;
 
     const body = await request.json();
     const { productId, name, price, image, quantity = 1, filterValues = [], categoryName, subcategoryName } = body;
@@ -106,13 +98,9 @@ export async function POST(request: NextRequest) {
 // DELETE /api/cart - clear entire cart
 export async function DELETE(request: NextRequest) {
   try {
-    const token = request.headers.get('authorization')?.replace('Bearer ', '');
-    if (!token) {
-      return NextResponse.json({ message: 'Unauthorized' }, { status: 401 });
-    }
-
-    const tokenData = JSON.parse(Buffer.from(token.split('.')[1], 'base64').toString());
-    const userId = tokenData._id;
+    // Verify token
+    const payload = verifyToken(request) as { _id: string; role: string };
+    const userId = payload._id;
 
     const db = await getDb();
     await db.collection('cart').deleteMany({ userId: new ObjectId(userId) });

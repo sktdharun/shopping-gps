@@ -3,11 +3,19 @@ import { getDb } from '../../../lib/mongodb';
 import { ObjectId } from 'mongodb';
 import { promises as fs } from 'fs';
 import path from 'path';
+import { verifyToken } from '../../../lib/auth';
 
 export async function GET(request: NextRequest) {
   try {
+    // Verify token
+    const payload = verifyToken(request) as { _id: string; role: string };
+
     const db = await getDb();
-    const stocks = await db.collection('stocks').find({}).toArray();
+    let stockQuery = {};
+    if (payload.role !== 'admin') {
+      stockQuery = { isActive: true };
+    }
+    const stocks = await db.collection('stocks').find(stockQuery).toArray();
     return NextResponse.json(stocks);
   } catch (error) {
     console.error('Error fetching stocks:', error);
@@ -17,6 +25,12 @@ export async function GET(request: NextRequest) {
 
 export async function POST(request: NextRequest) {
   try {
+    // Verify token and check admin role
+    const payload = verifyToken(request) as { _id: string; role: string };
+    if (payload.role !== 'admin') {
+      return NextResponse.json({ message: 'Unauthorized' }, { status: 403 });
+    }
+
     const formData = await request.formData();
     const stockData = JSON.parse(formData.get('stockData') as string);
 

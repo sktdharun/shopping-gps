@@ -63,7 +63,7 @@ export async function POST(request: NextRequest) {
     }
 
     // Ensure order statuses exist in order_statuses collection
-    const requiredStatuses = ['ordered', 'approved', 'packed_in_transit', 'delivered'];
+    const requiredStatuses = ['ordered', 'approved', 'packaged', 'InTransit', 'delivered', 'received', 'rejected'];
     for (const statusName of requiredStatuses) {
       const existing = await db.collection('order_statuses').findOne({ name: statusName });
       if (!existing) {
@@ -73,6 +73,9 @@ export async function POST(request: NextRequest) {
 
     // Get ordered status
     const orderedStatus = await db.collection('order_statuses').findOne({ name: 'ordered' });
+    if (!orderedStatus) {
+      return NextResponse.json({ message: 'Order status not found' }, { status: 500 });
+    }
 
     // Create order
     const order = {
@@ -84,9 +87,7 @@ export async function POST(request: NextRequest) {
       status: orderedStatus.name,
       trackingId: null,
       deliveryAgent: null,
-      createdAt: new Date(),
-      trackingId: null,
-      deliveryAgent: null
+      createdAt: new Date()
     };
 
     const result = await db.collection('orders').insertOne(order);

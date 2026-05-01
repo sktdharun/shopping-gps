@@ -3,6 +3,7 @@
 import { useState, useEffect, useMemo } from 'react';
 import { useRouter, useParams } from 'next/navigation';
 import { useCart } from '@/lib/CartContext';
+import SessionExpiredModal from '../../components/SessionExpiredModal';
 
 interface Category {
   _id: string;
@@ -73,6 +74,9 @@ export default function ProductDetailPage() {
   const [selectedImageIndex, setSelectedImageIndex] = useState(0);
   const [addingToCart, setAddingToCart] = useState(false);
   const [addedMessage, setAddedMessage] = useState(false);
+  const [user, setUser] = useState<any>(null);
+  const [isAdmin, setIsAdmin] = useState(false);
+  const [showSessionExpiredModal, setShowSessionExpiredModal] = useState(false);
   // Calculate remaining quantity that can be added to cart
   const remainingQuantity = useMemo(() => {
     if (!stock) return 0;
@@ -92,22 +96,59 @@ export default function ProductDetailPage() {
       setLoading(true);
       setError(null);
       try {
+        const token = localStorage.getItem('token');
+        const headers = token ? { Authorization: `Bearer ${token}` } : {};
+
         const [stockRes, catRes, attrRes, valRes] = await Promise.all([
-          fetch(`/api/stocks/${stockId}`),
-          fetch('/api/categories'),
-          fetch('/api/filter-attributes'),
-          fetch('/api/filter-values')
+          fetch(`/api/stocks/${stockId}`, { headers }),
+          fetch('/api/categories', { headers }),
+          fetch('/api/filter-attributes', { headers }),
+          fetch('/api/filter-values', { headers })
         ]);
 
         if (!stockRes.ok) {
           if (stockRes.status === 404) {
             throw new Error('Product not found');
           }
+          if (stockRes.status === 401) {
+            const data = await stockRes.json();
+            if (data.message === 'Token expired') {
+              setShowSessionExpiredModal(true);
+              return;
+            }
+          }
           throw new Error('Failed to fetch product');
         }
-        if (!catRes.ok) throw new Error('Failed to fetch categories');
-        if (!attrRes.ok) throw new Error('Failed to fetch filter attributes');
-        if (!valRes.ok) throw new Error('Failed to fetch filter values');
+        if (!catRes.ok) {
+          if (catRes.status === 401) {
+            const data = await catRes.json();
+            if (data.message === 'Token expired') {
+              setShowSessionExpiredModal(true);
+              return;
+            }
+          }
+          throw new Error('Failed to fetch categories');
+        }
+        if (!attrRes.ok) {
+          if (attrRes.status === 401) {
+            const data = await attrRes.json();
+            if (data.message === 'Token expired') {
+              setShowSessionExpiredModal(true);
+              return;
+            }
+          }
+          throw new Error('Failed to fetch filter attributes');
+        }
+        if (!valRes.ok) {
+          if (valRes.status === 401) {
+            const data = await valRes.json();
+            if (data.message === 'Token expired') {
+              setShowSessionExpiredModal(true);
+              return;
+            }
+          }
+          throw new Error('Failed to fetch filter values');
+        }
 
         const [stockData, categoriesData, attributesData, valuesData] = await Promise.all([
           stockRes.json(),
@@ -133,7 +174,24 @@ export default function ProductDetailPage() {
     }
   }, [stockId]);
 
-
+  // Check user authentication status
+  useEffect(() => {
+    const token = localStorage.getItem('token');
+    if (token) {
+      try {
+        const payload = JSON.parse(atob(token.split('.')[1]));
+        setUser(payload);
+        setIsAdmin(payload.role === 'admin');
+      } catch (error) {
+        console.error('Invalid token', error);
+        setUser(null);
+        setIsAdmin(false);
+      }
+    } else {
+      setUser(null);
+      setIsAdmin(false);
+    }
+  }, []);
 
   const getCategoryName = (categoryId?: string) => {
     if (!categoryId) return '';
@@ -402,10 +460,45 @@ export default function ProductDetailPage() {
                 <div className="mb-8">
                   <h2 className="text-lg font-semibold text-gray-900 mb-3">Product Details</h2>
                   <dl className="grid grid-cols-2 gap-4">
-                    <div>
-                      <dt className="text-sm text-gray-500">Product ID</dt>
-                      <dd className="text-sm font-medium text-gray-900">{stock._id}</dd>
+                {!isAdmin && (
+                  <div>
+                    <h3 className="text-sm font-medium text-gray-900 mb-3">Quantity</h3>
+                    <div className="flex items-center space-x-4">
+                      <div className="flex items-center border border-gray-300 rounded-lg">
+                        <button
+                          onClick={() => handleQuantityChange(validQuantity - 1)}
+                          disabled={validQuantity <= 1 || remainingQuantity === 0}
+                          className="px-3 py-2 text-gray-600 hover:bg-gray-100 disabled:opacity-50 disabled:cursor-not-allowed transition-colors"
+                        >
+                          −
+                        </button>
+                        <span className="px-4 py-2 text-gray-900 font-medium min-w-[3rem] text-center">
+                          {validQuantity}
+                        </span>
+                        <button
+                          onClick={() => handleQuantityChange(validQuantity + 1)}
+                          disabled={validQuantity >= remainingQuantity}
+                          className="px-3 py-2 text-gray-600 hover:bg-gray-100 disabled:opacity-50 disabled:cursor-not-allowed transition-colors"
+                        >
+                          +
+                        </button>
+                      </div>
+                      <span className="text-sm text-gray-500">
+                        {stock ? (() => {
+                          const existingCartItem = cart.find(item => item.productId === stockId);
+                          const currentCartQuantity = existingCartItem ? existingCartItem.quantity : 0;
+                          const availableToAdd = remainingQuantity;
+
+                          if (currentCartQuantity > 0) {
+                            return `${currentCartQuantity} in cart, ${availableToAdd} more can be added (max ${stock.maxQuantityPerOrder} per order)`;
+                          } else {
+                            return `Max ${stock.maxQuantityPerOrder} per order, ${stock.quantity} available`;
+                          }
+                        })() : ''}
+                      </span>
                     </div>
+                  </div>
+                )}
                     <div>
                       <dt className="text-sm text-gray-500">SKU</dt>
                       <dd className="text-sm font-medium text-gray-900">{stock._id.slice(-8).toUpperCase()}</dd>
@@ -426,83 +519,87 @@ export default function ProductDetailPage() {
                 </div>
 
                 {/* Quantity Controls */}
-                <div className="mb-6">
-                  <h3 className="text-sm font-medium text-gray-900 mb-3">Quantity</h3>
-                  <div className="flex items-center space-x-4">
-                    <div className="flex items-center border border-gray-300 rounded-lg">
-                      <button
-                        onClick={() => handleQuantityChange(validQuantity - 1)}
-                        disabled={validQuantity <= 1 || remainingQuantity === 0}
-                        className="px-3 py-2 text-gray-600 hover:bg-gray-100 disabled:opacity-50 disabled:cursor-not-allowed transition-colors"
-                      >
-                        −
-                      </button>
-                      <span className="px-4 py-2 text-gray-900 font-medium min-w-[3rem] text-center">
-                        {validQuantity}
+                {!isAdmin && (
+                  <div className="mb-6">
+                    <h3 className="text-sm font-medium text-gray-900 mb-3">Quantity</h3>
+                    <div className="flex items-center space-x-4">
+                      <div className="flex items-center border border-gray-300 rounded-lg">
+                        <button
+                          onClick={() => handleQuantityChange(validQuantity - 1)}
+                          disabled={validQuantity <= 1 || remainingQuantity === 0}
+                          className="px-3 py-2 text-gray-600 hover:bg-gray-100 disabled:opacity-50 disabled:cursor-not-allowed transition-colors"
+                        >
+                          −
+                        </button>
+                        <span className="px-4 py-2 text-gray-900 font-medium min-w-[3rem] text-center">
+                          {validQuantity}
+                        </span>
+                        <button
+                          onClick={() => handleQuantityChange(validQuantity + 1)}
+                          disabled={validQuantity >= remainingQuantity}
+                          className="px-3 py-2 text-gray-600 hover:bg-gray-100 disabled:opacity-50 disabled:cursor-not-allowed transition-colors"
+                        >
+                          +
+                        </button>
+                      </div>
+                      <span className="text-sm text-gray-500">
+                        {stock ? (() => {
+                          const existingCartItem = cart.find(item => item.productId === stockId);
+                          const currentCartQuantity = existingCartItem ? existingCartItem.quantity : 0;
+                          const availableToAdd = remainingQuantity;
+
+                          if (currentCartQuantity > 0) {
+                            return `${currentCartQuantity} in cart, ${availableToAdd} more can be added (max ${stock.maxQuantityPerOrder} per order)`;
+                          } else {
+                            return `Max ${stock.maxQuantityPerOrder} per order, ${stock.quantity} available`;
+                          }
+                        })() : ''}
                       </span>
-                      <button
-                        onClick={() => handleQuantityChange(validQuantity + 1)}
-                        disabled={validQuantity >= remainingQuantity}
-                        className="px-3 py-2 text-gray-600 hover:bg-gray-100 disabled:opacity-50 disabled:cursor-not-allowed transition-colors"
-                      >
-                        +
-                      </button>
                     </div>
-                    <span className="text-sm text-gray-500">
-                      {stock ? (() => {
-                        const existingCartItem = cart.find(item => item.productId === stockId);
-                        const currentCartQuantity = existingCartItem ? existingCartItem.quantity : 0;
-                        const availableToAdd = remainingQuantity;
-
-                        if (currentCartQuantity > 0) {
-                          return `${currentCartQuantity} in cart, ${availableToAdd} more can be added (max ${stock.maxQuantityPerOrder} per order)`;
-                        } else {
-                          return `Max ${stock.maxQuantityPerOrder} per order, ${stock.quantity} available`;
-                        }
-                      })() : ''}
-                    </span>
                   </div>
-                </div>
+                )}
 
-                <div className="flex gap-4">
-                  <button
-                    onClick={async () => {
-                      if (stock) {
-                        setAddingToCart(true);
-                        await addToCart({
-                          _id: stock._id,
-                          name: stock.name,
-                          price: stock.price,
-                          image: stock.images[0] || '',
-                          filterValues: stock.filterValues,
-                          categoryName: resolvedFilterValues.find(fv => fv.attributeName === 'category')?.displayLabel ||
-                            getCategoryName(stock.categoryId),
-                          subcategoryName: resolvedFilterValues.find(fv => fv.attributeName === 'subcategory')?.displayLabel ||
-                            getCategoryName(stock.subcategoryId)
-                        }, validQuantity);
-                        setAddingToCart(false);
-                        setAddedMessage(true);
-                        setTimeout(() => setAddedMessage(false), 2000);
-                      }
-                    }}
-                    disabled={remainingQuantity === 0 || addingToCart}
-                    className={`flex-1 py-3 px-6 rounded-lg font-semibold transition-all duration-200 ${
-                      stock.quantity === 0
-                        ? 'bg-gray-300 text-gray-500 cursor-not-allowed'
-                        : addedMessage
-                        ? 'bg-green-600 text-white shadow-md'
-                        : 'bg-orange-500 hover:bg-orange-600 text-white shadow-md hover:shadow-lg active:bg-orange-700'
-                    }`}
-                  >
-                    {addingToCart ? 'Adding...' : addedMessage ? 'Added to Cart!' : remainingQuantity === 0 ? 'Maximum Quantity Reached' : `Add ${validQuantity} to Cart`}
-                  </button>
-                  <button
-                    onClick={handleBack}
-                    className="px-6 py-3 border border-gray-300 rounded-lg text-gray-700 hover:bg-gray-50 transition-colors duration-200"
-                  >
-                    Continue Shopping
-                  </button>
-                </div>
+                {!isAdmin && (
+                  <div className="flex gap-4">
+                    <button
+                      onClick={async () => {
+                        if (stock) {
+                          setAddingToCart(true);
+                          await addToCart({
+                            _id: stock._id,
+                            name: stock.name,
+                            price: stock.price,
+                            image: stock.images[0] || '',
+                            filterValues: stock.filterValues,
+                            categoryName: resolvedFilterValues.find(fv => fv.attributeName === 'category')?.displayLabel ||
+                              getCategoryName(stock.categoryId),
+                            subcategoryName: resolvedFilterValues.find(fv => fv.attributeName === 'subcategory')?.displayLabel ||
+                              getCategoryName(stock.subcategoryId)
+                          }, validQuantity);
+                          setAddingToCart(false);
+                          setAddedMessage(true);
+                          setTimeout(() => setAddedMessage(false), 2000);
+                        }
+                      }}
+                      disabled={remainingQuantity === 0 || addingToCart}
+                      className={`flex-1 py-3 px-6 rounded-lg font-semibold transition-all duration-200 ${
+                        stock.quantity === 0
+                          ? 'bg-gray-300 text-gray-500 cursor-not-allowed'
+                          : addedMessage
+                          ? 'bg-green-600 text-white shadow-md'
+                          : 'bg-orange-500 hover:bg-orange-600 text-white shadow-md hover:shadow-lg active:bg-orange-700'
+                      }`}
+                    >
+                      {addingToCart ? 'Adding...' : addedMessage ? 'Added to Cart!' : remainingQuantity === 0 ? 'Maximum Quantity Reached' : `Add ${validQuantity} to Cart`}
+                    </button>
+                    <button
+                      onClick={handleBack}
+                      className="px-6 py-3 border border-gray-300 rounded-lg text-gray-700 hover:bg-gray-50 transition-colors duration-200"
+                    >
+                      Continue Shopping
+                    </button>
+                  </div>
+                )}
               </div>
             </div>
           </div>
@@ -524,6 +621,11 @@ export default function ProductDetailPage() {
           </div>
         </div>
       )}
+
+      <SessionExpiredModal
+        isOpen={showSessionExpiredModal}
+        onClose={() => setShowSessionExpiredModal(false)}
+      />
     </div>
   );
 }

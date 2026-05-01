@@ -1,4 +1,4 @@
-import { getDb } from '../lib/mongodb.js';
+import { getDb } from '../../../lib/mongodb';
 import bcrypt from 'bcryptjs';
 
 export async function GET() {
@@ -60,7 +60,7 @@ export async function GET() {
     console.error('Test user creation error:', error);
     return Response.json({
       message: 'Error creating test user',
-      error: error.message
+      error: error instanceof Error ? error.message : 'Unknown error'
     }, { status: 500 });
   }
 }

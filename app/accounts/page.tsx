@@ -9,6 +9,8 @@ interface Order {
   total: number;
   status: string;
   createdAt: string;
+  trackingId?: string;
+  deliveryAgent?: string;
 }
 
 interface Address {
@@ -143,39 +145,53 @@ export default function AccountsPage() {
                 <p className="text-gray-600">No orders found.</p>
               ) : (
                 orders.map(order => (
-                  <div key={order._id} className="bg-white rounded-lg shadow p-6">
+                  <div
+                    key={order._id}
+                    onClick={() => router.push(`/order-review/${order._id}`)}
+                    className="bg-white rounded-lg shadow p-6 cursor-pointer hover:shadow-lg transition-all duration-300 hover:scale-[1.02] border border-gray-100"
+                  >
                     <div className="flex justify-between items-start mb-4">
                       <div>
-                        <p className="text-sm text-gray-600">Order ID: {order._id}</p>
+                        <p className="text-sm text-gray-600">Order ID: {order._id.slice(-8).toUpperCase()}</p>
                         <p className="text-sm text-gray-600">Date: {new Date(order.createdAt).toLocaleDateString()}</p>
                       </div>
                       <div className="text-right">
-                        <p className="font-medium">Total: ${order.total}</p>
-                        <p className={`text-sm ${
+                        <p className="font-medium text-lg">💰 ${order.total}</p>
+                        <p className={`text-sm font-semibold ${
                           order.status === 'delivered' ? 'text-green-600' :
                           order.status === 'ordered' ? 'text-blue-600' :
                           order.status === 'order_approved' ? 'text-green-600' :
                           order.status === 'packed_in_transit' ? 'text-orange-600' :
                           'text-yellow-600'
                         }`}>
-                          Status: {order.status.replace('_', ' ').replace('order ', '').toUpperCase()}
+                          {order.status.replace('_', ' ').replace('order ', '').toUpperCase()}
                         </p>
                       </div>
                     </div>
                     <div>
-                      <h4 className="font-medium mb-2">Items:</h4>
-                      <ul className="list-disc list-inside text-sm text-gray-700">
-                        {order.items.map((item: any, index: number) => (
-                          <li key={index}>{item.name} - Quantity: {item.quantity}</li>
+                      <h4 className="font-medium mb-2 flex items-center">
+                        📦 Items ({order.items.length})
+                      </h4>
+                      <ul className="list-disc list-inside text-sm text-gray-700 mb-3">
+                        {order.items.slice(0, 3).map((item: any, index: number) => (
+                          <li key={index}>{item.name} - Qty: {item.quantity}</li>
                         ))}
+                        {order.items.length > 3 && (
+                          <li className="text-gray-500">+{order.items.length - 3} more items...</li>
+                        )}
                       </ul>
                       {order.trackingId && (
-                        <div className="mt-4 p-3 bg-blue-50 rounded">
-                          <p className="text-sm font-medium">Tracking Information:</p>
-                          <p className="text-sm">ID: {order.trackingId}</p>
-                          {order.deliveryAgent && <p className="text-sm">Agent: {order.deliveryAgent}</p>}
+                        <div className="mt-4 p-3 bg-blue-50 rounded-lg border border-blue-200">
+                          <p className="text-sm font-medium text-blue-800">🚚 Tracking Information:</p>
+                          <p className="text-sm text-blue-700">ID: {order.trackingId}</p>
+                          {order.deliveryAgent && <p className="text-sm text-blue-700">Agent: {order.deliveryAgent}</p>}
                         </div>
                       )}
+                      <div className="mt-4 text-center">
+                        <span className="text-blue-600 hover:text-blue-800 text-sm font-medium">
+                          Click to view details →
+                        </span>
+                      </div>
                     </div>
                   </div>
                 ))

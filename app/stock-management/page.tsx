@@ -2,6 +2,7 @@
 
 import { useState, useEffect } from 'react';
 import { useRouter } from 'next/navigation';
+import SessionExpiredModal from '../components/SessionExpiredModal';
 
 interface Category {
   _id: string;
@@ -46,6 +47,7 @@ export default function StockManagementPage() {
   const [loading, setLoading] = useState(true);
   const [showAddForm, setShowAddForm] = useState(false);
   const [editingStock, setEditingStock] = useState<Stock | null>(null);
+  const [showSessionExpiredModal, setShowSessionExpiredModal] = useState(false);
   const router = useRouter();
 
   // Form state
@@ -87,12 +89,56 @@ export default function StockManagementPage() {
 
   const fetchData = async () => {
     try {
+      const token = localStorage.getItem('token');
+      const headers = token ? { Authorization: `Bearer ${token}` } : {};
+
       const [categoriesRes, attributesRes, valuesRes, stocksRes] = await Promise.all([
-        fetch('/api/categories'),
-        fetch('/api/filter-attributes'),
-        fetch('/api/filter-values'),
-        fetch('/api/stocks')
+        fetch('/api/categories', { headers }),
+        fetch('/api/filter-attributes', { headers }),
+        fetch('/api/filter-values', { headers }),
+        fetch('/api/stocks', { headers })
       ]);
+
+      if (!categoriesRes.ok) {
+        if (categoriesRes.status === 401) {
+          const data = await categoriesRes.json();
+          if (data.message === 'Token expired') {
+            setShowSessionExpiredModal(true);
+            return;
+          }
+        }
+        throw new Error('Failed to fetch categories');
+      }
+      if (!attributesRes.ok) {
+        if (attributesRes.status === 401) {
+          const data = await attributesRes.json();
+          if (data.message === 'Token expired') {
+            setShowSessionExpiredModal(true);
+            return;
+          }
+        }
+        throw new Error('Failed to fetch filter attributes');
+      }
+      if (!valuesRes.ok) {
+        if (valuesRes.status === 401) {
+          const data = await valuesRes.json();
+          if (data.message === 'Token expired') {
+            setShowSessionExpiredModal(true);
+            return;
+          }
+        }
+        throw new Error('Failed to fetch filter values');
+      }
+      if (!stocksRes.ok) {
+        if (stocksRes.status === 401) {
+          const data = await stocksRes.json();
+          if (data.message === 'Token expired') {
+            setShowSessionExpiredModal(true);
+            return;
+          }
+        }
+        throw new Error('Failed to fetch stocks');
+      }
 
       const categoriesData = await categoriesRes.json();
       const attributesData = await attributesRes.json();
@@ -157,6 +203,7 @@ export default function StockManagementPage() {
           description: '',
           price: 0,
           quantity: 0,
+          maxQuantityPerOrder: 5,
           categoryId: '',
           subcategoryId: '',
           subSubcategoryId: '',
@@ -180,6 +227,7 @@ export default function StockManagementPage() {
       description: stock.description,
       price: stock.price,
       quantity: stock.quantity,
+      maxQuantityPerOrder: stock.maxQuantityPerOrder,
       categoryId: stock.categoryId,
       subcategoryId: stock.subcategoryId || '',
       subSubcategoryId: stock.subSubcategoryId || '',
@@ -510,6 +558,7 @@ export default function StockManagementPage() {
                       description: '',
                       price: 0,
                       quantity: 0,
+                      maxQuantityPerOrder: 5,
                       categoryId: '',
                       subcategoryId: '',
                       subSubcategoryId: '',
@@ -615,6 +664,11 @@ export default function StockManagementPage() {
           </div>
         </div>
       </div>
+
+      <SessionExpiredModal
+        isOpen={showSessionExpiredModal}
+        onClose={() => setShowSessionExpiredModal(false)}
+      />
     </div>
   );
 }

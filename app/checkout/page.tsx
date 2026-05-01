@@ -197,11 +197,17 @@ export default function CheckoutPage() {
             <div className="space-y-4">
               {cart.map((item: CartItem) => (
                 <div key={item._id} className="flex items-center space-x-4 border-b pb-4">
-                  <img
-                    src={item.image || '/placeholder-image.jpg'}
-                    alt={item.name}
-                    className="w-16 h-16 object-cover rounded"
-                  />
+                  {item.image ? (
+                    <img
+                      src={item.image.startsWith('/shopping/') ? `/api/images?path=${item.image}` : item.image}
+                      alt={item.name}
+                      className="w-16 h-16 object-cover rounded"
+                    />
+                  ) : (
+                    <div className="w-16 h-16 bg-gray-200 rounded flex items-center justify-center">
+                      <span className="text-gray-400 text-xs">No Image</span>
+                    </div>
+                  )}
                   <div className="flex-1">
                     <h3 className="font-medium">{item.name}</h3>
                     <p className="text-sm text-gray-600">
@@ -238,32 +244,50 @@ export default function CheckoutPage() {
                   Add Address
                 </button>
               </div>
+            ) : addresses.length === 1 ? (
+              <div className="p-4 border rounded-lg bg-gray-50">
+                <p className="font-medium">{addresses[0].name}</p>
+                <p className="text-sm text-gray-600">
+                  {addresses[0].addressLine1}<br />
+                  {addresses[0].addressLine2}<br />
+                  {addresses[0].city}, {addresses[0].state} {addresses[0].pinCode}<br />
+                  {addresses[0].country}<br />
+                  Mobile: {addresses[0].mobile}
+                </p>
+              </div>
             ) : (
               <div className="space-y-4">
-                {addresses.map(address => (
-                  <label key={address._id} className="block">
-                    <div className="flex items-start space-x-3 p-4 border rounded-lg cursor-pointer hover:bg-gray-50">
-                      <input
-                        type="radio"
-                        name="address"
-                        value={address._id}
-                        checked={selectedAddressId === address._id}
-                        onChange={(e) => setSelectedAddressId(e.target.value)}
-                        className="mt-1"
-                      />
-                      <div className="flex-1">
-                        <p className="font-medium">{address.name}</p>
-                        <p className="text-sm text-gray-600">
-                          {address.addressLine1}<br />
-                          {address.addressLine2}<br />
-                          {address.city}, {address.state} {address.pinCode}<br />
-                          {address.country}<br />
-                          Mobile: {address.mobile}
-                        </p>
-                      </div>
-                    </div>
-                  </label>
-                ))}
+                <select
+                  value={selectedAddressId}
+                  onChange={(e) => setSelectedAddressId(e.target.value)}
+                  className="w-full p-3 border rounded-lg"
+                >
+                  <option value="">Select an address</option>
+                  {addresses.map(address => (
+                    <option key={address._id} value={address._id}>
+                      {address.name} - {address.addressLine1}, {address.city}, {address.state} {address.pinCode}
+                    </option>
+                  ))}
+                </select>
+                {selectedAddressId && (
+                  <div className="p-4 border rounded-lg bg-gray-50">
+                    {(() => {
+                      const selected = addresses.find(addr => addr._id === selectedAddressId);
+                      return selected ? (
+                        <>
+                          <p className="font-medium">{selected.name}</p>
+                          <p className="text-sm text-gray-600">
+                            {selected.addressLine1}<br />
+                            {selected.addressLine2}<br />
+                            {selected.city}, {selected.state} {selected.pinCode}<br />
+                            {selected.country}<br />
+                            Mobile: {selected.mobile}
+                          </p>
+                        </>
+                      ) : null;
+                    })()}
+                  </div>
+                )}
               </div>
             )}
 
