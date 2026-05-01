@@ -90,7 +90,10 @@ export default function StockManagementPage() {
   const fetchData = async () => {
     try {
       const token = localStorage.getItem('token');
-      const headers = token ? { Authorization: `Bearer ${token}` } : {};
+      const headers: Record<string, string> = {};
+      if (token) {
+        headers.Authorization = `Bearer ${token}`;
+      }
 
       const [categoriesRes, attributesRes, valuesRes, stocksRes] = await Promise.all([
         fetch('/api/categories', { headers }),

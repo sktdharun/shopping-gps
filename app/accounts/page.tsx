@@ -1,7 +1,9 @@
 'use client';
 
-import { useState, useEffect } from 'react';
+import { useState, useEffect, Suspense } from 'react';
 import { useRouter, useSearchParams } from 'next/navigation';
+
+export const dynamic = 'force-dynamic';
 
 interface Order {
   _id: string;
@@ -26,7 +28,7 @@ interface Address {
   country: string;
 }
 
-export default function AccountsPage() {
+function AccountsPageContent() {
   const router = useRouter();
   const searchParams = useSearchParams();
   const [activeTab, setActiveTab] = useState<'profile' | 'orders' | 'addresses'>('profile');
@@ -292,5 +294,13 @@ export default function AccountsPage() {
         </div>
       </div>
     </div>
+  );
+}
+
+export default function AccountsPage() {
+  return (
+    <Suspense fallback={<div className="min-h-screen flex items-center justify-center">Loading...</div>}>
+      <AccountsPageContent />
+    </Suspense>
   );
 }

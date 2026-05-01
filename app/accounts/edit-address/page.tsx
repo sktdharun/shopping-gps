@@ -1,7 +1,9 @@
 'use client';
 
-import { useState, useEffect } from 'react';
+import { useState, useEffect, Suspense } from 'react';
 import { useRouter, useSearchParams } from 'next/navigation';
+
+export const dynamic = 'force-dynamic';
 
 interface Address {
   _id: string;
@@ -16,7 +18,7 @@ interface Address {
   country: string;
 }
 
-export default function EditAddressPage() {
+function EditAddressPageContent() {
   const router = useRouter();
   const searchParams = useSearchParams();
   const addressId = searchParams.get('id');
@@ -375,5 +377,13 @@ export default function EditAddressPage() {
         </form>
       </div>
     </div>
+  );
+}
+
+export default function EditAddressPage() {
+  return (
+    <Suspense fallback={<div className="min-h-screen flex items-center justify-center">Loading...</div>}>
+      <EditAddressPageContent />
+    </Suspense>
   );
 }

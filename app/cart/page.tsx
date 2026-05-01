@@ -70,7 +70,10 @@ export default function CartPage() {
       // Fetch filter attributes and values for display
       try {
         const token = localStorage.getItem('token');
-        const headers = token ? { Authorization: `Bearer ${token}` } : {};
+        const headers: Record<string, string> = {};
+        if (token) {
+          headers.Authorization = `Bearer ${token}`;
+        }
 
         const [attrRes, valRes] = await Promise.all([
           fetch('/api/filter-attributes', { headers }),

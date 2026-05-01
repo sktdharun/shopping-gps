@@ -80,7 +80,10 @@ export default function Home() {
     const fetchShopData = async () => {
       try {
         const token = localStorage.getItem('token');
-        const headers = token ? { Authorization: `Bearer ${token}` } : {};
+        const headers: Record<string, string> = {};
+        if (token) {
+          headers.Authorization = `Bearer ${token}`;
+        }
 
         const [catRes, productsRes] = await Promise.all([
 
