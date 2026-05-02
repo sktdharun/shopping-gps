@@ -269,7 +269,7 @@ export default function OrderReviewPage() {
 
   return (
     <div className="min-h-screen bg-gradient-to-br from-blue-50 via-white to-purple-50">
-      <div className="max-w-6xl mx-auto px-4 sm:px-6 lg:px-8 py-8">
+      <div className="max-w-7xl mx-auto px-2 sm:px-4 lg:px-6 py-8">
         {/* Header */}
         <div className="text-center mb-8">
           <h1 className="text-4xl font-bold text-transparent bg-clip-text bg-gradient-to-r from-blue-600 to-purple-600 mb-2">
@@ -278,8 +278,10 @@ export default function OrderReviewPage() {
           <p className="text-gray-600">Detailed view of your order</p>
         </div>
 
-        {/* Order Info Card */}
-        <div className="bg-white rounded-2xl shadow-2xl overflow-hidden mb-8 border border-gray-100">
+        {/* Order Info and Status Flex */}
+        <div className="flex flex-col lg:flex-row gap-4">
+          {/* Order Info Card */}
+          <div className="lg:basis-[68%] lg:flex-shrink-0 bg-white rounded-2xl shadow-2xl overflow-hidden border border-gray-100">
           <div className="bg-gradient-to-r from-blue-600 to-purple-600 p-6">
             <div className="flex flex-col md:flex-row md:items-center md:justify-between text-white">
               <div>
@@ -295,10 +297,10 @@ export default function OrderReviewPage() {
               <div className="mt-4 md:mt-0 text-right">
                 <div className={`inline-flex items-center px-4 py-2 rounded-full text-sm font-semibold border ${getStatusColor(order.status)}`}>
                   <span className="mr-2">{getStatusIcon(order.status)}</span>
-                  {order.status.charAt(0).toUpperCase() + order.status.slice(1).replace('_', ' ')}
+                  {order.statusDisplay || order.status}
                 </div>
                 <div className="text-3xl font-bold mt-2 text-yellow-300">
-                  ${order.total.toFixed(2)}
+                  ₹{order.total.toFixed(2)}
                 </div>
               </div>
             </div>
@@ -433,13 +435,13 @@ export default function OrderReviewPage() {
                         {/* Price & Quantity */}
                         <div className="mt-4 md:mt-0 md:text-right">
                           <div className="text-2xl font-bold text-green-600 mb-1">
-                            ${item.price.toFixed(2)}
+                            ₹{item.price.toFixed(2)}
                           </div>
                           <div className="text-sm text-gray-600">
                             Quantity: <span className="font-semibold">{item.quantity}</span>
                           </div>
                           <div className="text-sm text-gray-600 mt-1">
-                            Subtotal: <span className="font-semibold text-green-600">${(item.price * item.quantity).toFixed(2)}</span>
+                            Subtotal: <span className="font-semibold text-green-600">₹{(item.price * item.quantity).toFixed(2)}</span>
                           </div>
                         </div>
                       </div>
@@ -458,17 +460,17 @@ export default function OrderReviewPage() {
                 </div>
                 <div className="text-right">
                   <div className="text-3xl font-bold text-green-600">
-                    💰 ${order.total.toFixed(2)}
+                    💰 ₹{order.total.toFixed(2)}
                   </div>
                 </div>
               </div>
             </div>
           </div>
-        </div>
+          </div>
 
-        {/* Status Update Section */}
-        {user && order && order.status !== 'delivered' && order.status !== 'rejected' && getAvailableStatuses(order.status, user.role).length > 0 && (
-          <div className="bg-white rounded-2xl shadow-2xl overflow-hidden mb-8 border border-gray-100">
+          {/* Status Update Section */}
+          {user && order && order.status !== 'delivered' && order.status !== 'rejected' && getAvailableStatuses(order.status, user.role).length > 0 && (
+            <div className="lg:basis-[32%] lg:flex-shrink-0 bg-white rounded-2xl shadow-2xl overflow-hidden border border-gray-100">
             <div className="bg-gradient-to-r from-blue-600 to-purple-600 p-6">
               <h3 className="text-xl font-bold text-white flex items-center">
                 <span className="mr-2">⚙️</span> Order Status Management
@@ -573,6 +575,7 @@ export default function OrderReviewPage() {
             </div>
           </div>
         )}
+        </div>
 
         {/* Back Button */}
         <div className="text-center">

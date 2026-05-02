@@ -18,7 +18,34 @@ export async function GET(request: NextRequest) {
     }
 
     const db = await getDb();
-    const orders = await db.collection('orders').find({ userId: decoded._id }).sort({ createdAt: -1 }).toArray();
+    const orders = await db.collection('orders').aggregate([
+      { $match: { userId: decoded._id } },
+      {
+        $lookup: {
+          from: 'order_statuses',
+          localField: 'statusId',
+          foreignField: '_id',
+          as: 'statusDoc'
+        }
+      },
+      { $unwind: '$statusDoc' },
+      {
+        $project: {
+          _id: 1,
+          userId: 1,
+          items: 1,
+          addressId: 1,
+          total: 1,
+          statusId: 1,
+          status: '$statusDoc.name',
+          statusDisplay: '$statusDoc.display',
+          trackingId: 1,
+          deliveryAgent: 1,
+          createdAt: 1
+        }
+      },
+      { $sort: { createdAt: -1 } }
+    ]).toArray();
 
     return NextResponse.json({ orders });
   } catch (error: unknown) {
@@ -63,11 +90,19 @@ export async function POST(request: NextRequest) {
     }
 
     // Ensure order statuses exist in order_statuses collection
-    const requiredStatuses = ['ordered', 'approved', 'packaged', 'InTransit', 'delivered', 'received', 'rejected'];
-    for (const statusName of requiredStatuses) {
+    const statusMap: Record<string, string> = {
+      'ordered': 'Ordered',
+      'approved': 'Approved',
+      'packaged': 'Packaged',
+      'InTransit': 'In Transit',
+      'delivered': 'Delivered',
+      'received': 'Received',
+      'rejected': 'Rejected'
+    };
+    for (const statusName of Object.keys(statusMap)) {
       const existing = await db.collection('order_statuses').findOne({ name: statusName });
       if (!existing) {
-        await db.collection('order_statuses').insertOne({ name: statusName });
+        await db.collection('order_statuses').insertOne({ name: statusName, display: statusMap[statusName] });
       }
     }
 
@@ -79,12 +114,13 @@ export async function POST(request: NextRequest) {
 
     // Create order
     const order = {
-      userId: decoded._id,
+      userId: new ObjectId(decoded._id),
       items,
       addressId: new ObjectId(addressId),
       total,
       statusId: orderedStatus._id,
       status: orderedStatus.name,
+      statusDisplay: orderedStatus.display,
       trackingId: null,
       deliveryAgent: null,
       createdAt: new Date()

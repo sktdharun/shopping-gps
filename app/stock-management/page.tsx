@@ -647,7 +647,7 @@ export default function StockManagementPage() {
                         {category?.name}
                       </td>
                       <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-900">
-                        ${stock.price}
+                        ₹{stock.price}
                       </td>
                       <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-900">
                         {stock.quantity}

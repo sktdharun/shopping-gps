@@ -76,10 +76,13 @@ export default function CheckoutPage() {
   }, [router]);
 
   const validateProducts = async () => {
+    const token = localStorage.getItem('token');
     const invalid = [];
     for (const item of cart) {
       try {
-        const res = await fetch(`/api/products/${item.productId}`);
+        const res = await fetch(`/api/products/${item.productId}`, {
+          headers: { Authorization: `Bearer ${token}` }
+        });
         if (!res.ok) {
           invalid.push(item.name);
         } else {
@@ -211,14 +214,14 @@ export default function CheckoutPage() {
                   <div className="flex-1">
                     <h3 className="font-medium">{item.name}</h3>
                     <p className="text-sm text-gray-600">
-                      Quantity: {item.quantity} × ${item.price}
+                      Quantity: {item.quantity} × ₹{item.price}
                     </p>
                     {item.categoryName && (
                       <p className="text-xs text-gray-500">{item.categoryName}</p>
                     )}
                   </div>
                   <div className="text-right">
-                    <p className="font-semibold">${(item.price * item.quantity).toFixed(2)}</p>
+                    <p className="font-semibold">₹{(item.price * item.quantity).toFixed(2)}</p>
                   </div>
                 </div>
               ))}
@@ -226,7 +229,7 @@ export default function CheckoutPage() {
             <div className="mt-6 pt-4 border-t">
               <div className="flex justify-between items-center text-lg font-semibold">
                 <span>Total:</span>
-                <span>${cartTotal.toFixed(2)}</span>
+                <span>₹{cartTotal.toFixed(2)}</span>
               </div>
             </div>
           </div>

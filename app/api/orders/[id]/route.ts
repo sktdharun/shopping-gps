@@ -34,7 +34,7 @@ export async function GET(request: NextRequest, { params }: { params: Promise<{ 
     // Get detailed product information for each item
     const orderItemsWithDetails = await Promise.all(
       order.items.map(async (item: any) => {
-        const product = await db.collection('products').findOne(
+        const product = await db.collection('stocks').findOne(
           { _id: new ObjectId(item.productId) },
           {
             projection: {

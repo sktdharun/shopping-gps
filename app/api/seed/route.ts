@@ -15,13 +15,13 @@ export async function POST(request: NextRequest) {
 
     // Seed statuses for orders
     const orderStatuses = [
-      { name: 'ordered' },
-      { name: 'approved' },
-      { name: 'packaged' },
-      { name: 'InTransit' },
-      { name: 'delivered' },
-      { name: 'received' },
-      { name: 'rejected' }
+      { name: 'ordered', display: 'Ordered' },
+      { name: 'approved', display: 'Approved' },
+      { name: 'packaged', display: 'Packaged' },
+      { name: 'InTransit', display: 'In Transit' },
+      { name: 'delivered', display: 'Delivered' },
+      { name: 'received', display: 'Received' },
+      { name: 'rejected', display: 'Rejected' }
     ];
     await db.collection('order_statuses').insertMany(orderStatuses, { ordered: false });
 

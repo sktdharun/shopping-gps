@@ -398,7 +398,7 @@ export default function ProductDetailPage() {
                   </h1>
                   <div className="flex items-center mb-6">
                     <span className="text-4xl font-bold text-gray-900">
-                      ${stock.price}
+                      ₹{stock.price}
                     </span>
                     <span className={`ml-4 px-3 py-1 rounded-full text-sm font-medium ${
                       stock.quantity > 10
@@ -410,7 +410,7 @@ export default function ProductDetailPage() {
                       {stock.quantity > 10
                         ? 'In Stock'
                         : stock.quantity > 0
-                        ? `Low Stock (${stock.quantity} left)`
+                        ? 'Low Stock'
                         : 'Out of Stock'}
                     </span>
                   </div>
@@ -463,45 +463,6 @@ export default function ProductDetailPage() {
                 <div className="mb-8">
                   <h2 className="text-lg font-semibold text-gray-900 mb-3">Product Details</h2>
                   <dl className="grid grid-cols-2 gap-4">
-                {!isAdmin && (
-                  <div>
-                    <h3 className="text-sm font-medium text-gray-900 mb-3">Quantity</h3>
-                    <div className="flex items-center space-x-4">
-                      <div className="flex items-center border border-gray-300 rounded-lg">
-                        <button
-                          onClick={() => handleQuantityChange(validQuantity - 1)}
-                          disabled={validQuantity <= 1 || remainingQuantity === 0}
-                          className="px-3 py-2 text-gray-600 hover:bg-gray-100 disabled:opacity-50 disabled:cursor-not-allowed transition-colors"
-                        >
-                          −
-                        </button>
-                        <span className="px-4 py-2 text-gray-900 font-medium min-w-[3rem] text-center">
-                          {validQuantity}
-                        </span>
-                        <button
-                          onClick={() => handleQuantityChange(validQuantity + 1)}
-                          disabled={validQuantity >= remainingQuantity}
-                          className="px-3 py-2 text-gray-600 hover:bg-gray-100 disabled:opacity-50 disabled:cursor-not-allowed transition-colors"
-                        >
-                          +
-                        </button>
-                      </div>
-                      <span className="text-sm text-gray-500">
-                        {stock ? (() => {
-                          const existingCartItem = cart.find(item => item.productId === stockId);
-                          const currentCartQuantity = existingCartItem ? existingCartItem.quantity : 0;
-                          const availableToAdd = remainingQuantity;
-
-                          if (currentCartQuantity > 0) {
-                            return `${currentCartQuantity} in cart, ${availableToAdd} more can be added (max ${stock.maxQuantityPerOrder} per order)`;
-                          } else {
-                            return `Max ${stock.maxQuantityPerOrder} per order, ${stock.quantity} available`;
-                          }
-                        })() : ''}
-                      </span>
-                    </div>
-                  </div>
-                )}
                     <div>
                       <dt className="text-sm text-gray-500">SKU</dt>
                       <dd className="text-sm font-medium text-gray-900">{stock._id.slice(-8).toUpperCase()}</dd>
@@ -611,7 +572,7 @@ export default function ProductDetailPage() {
           <div className="mt-12 grid grid-cols-1 md:grid-cols-3 gap-6">
             <div className="bg-white p-6 rounded-lg shadow-sm">
               <h3 className="text-lg font-semibold text-gray-900 mb-2">Free Shipping</h3>
-              <p className="text-gray-600 text-sm">Free shipping on orders over $50</p>
+              <p className="text-gray-600 text-sm">Free shipping on orders over ₹50</p>
             </div>
             <div className="bg-white p-6 rounded-lg shadow-sm">
               <h3 className="text-lg font-semibold text-gray-900 mb-2">Easy Returns</h3>

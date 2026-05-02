@@ -255,7 +255,7 @@ export default function DeliveryManagementPage() {
                           </div>
                         </td>
                         <td className="px-6 py-4 whitespace-nowrap text-sm font-bold text-green-600">
-                          💵 ${order.total.toFixed(2)}
+                          💵 ₹{order.total.toFixed(2)}
                         </td>
                          <td className="px-6 py-4 whitespace-nowrap">
                            <span className={`inline-flex items-center px-3 py-1 text-xs font-semibold rounded-full ${
@@ -274,7 +274,7 @@ export default function DeliveryManagementPage() {
                                order.status === 'packaged' ? 'bg-indigo-500' :
                                'bg-yellow-500'
                              }`}></span>
-                             {order.status.charAt(0).toUpperCase() + order.status.slice(1)}
+                              {order.statusDisplay || order.status}
                            </span>
                          </td>
                         <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-500">

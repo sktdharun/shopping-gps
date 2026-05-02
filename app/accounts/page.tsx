@@ -158,7 +158,7 @@ function AccountsPageContent() {
                         <p className="text-sm text-gray-600">Date: {new Date(order.createdAt).toLocaleDateString()}</p>
                       </div>
                       <div className="text-right">
-                        <p className="font-medium text-lg">💰 ${order.total}</p>
+                        <p className="font-medium text-lg">💰 ₹{order.total}</p>
                         <p className={`text-sm font-semibold ${
                           order.status === 'delivered' ? 'text-green-600' :
                           order.status === 'ordered' ? 'text-blue-600' :
@@ -166,7 +166,7 @@ function AccountsPageContent() {
                           order.status === 'packed_in_transit' ? 'text-orange-600' :
                           'text-yellow-600'
                         }`}>
-                          {order.status.replace('_', ' ').replace('order ', '').toUpperCase()}
+                          {order.statusDisplay || order.status}
                         </p>
                       </div>
                     </div>

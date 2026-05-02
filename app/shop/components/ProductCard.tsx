@@ -70,7 +70,7 @@ export default function ProductCard({ product, isAdmin }: ProductCardProps) {
 
         <div className="flex items-center justify-between">
           <div className="flex flex-col">
-            <span className="text-2xl font-bold text-gray-900">${product.price}</span>
+            <span className="text-2xl font-bold text-gray-900">₹{product.price}</span>
             <span className={`text-sm font-medium ${isOutOfStock ? 'text-gray-500' : 'text-green-600'}`}>
               {isOutOfStock ? 'Stock not available' : 'In Stock'}
             </span>

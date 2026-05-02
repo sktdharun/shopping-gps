@@ -233,7 +233,7 @@ export default function CartPage() {
                           </p>
                         </div>
                         <div className="text-right">
-                          <p className="text-lg font-bold text-gray-900">${item.price}</p>
+                          <p className="text-lg font-bold text-gray-900">₹{item.price}</p>
                           <p className={`text-sm ${item.stockQuantity > 0 ? 'text-green-600' : 'text-red-600'}`}>
                             {item.stockQuantity > 0 ? 'In Stock' : 'Out of Stock'}
                           </p>
@@ -301,16 +301,16 @@ export default function CartPage() {
                 <div className="space-y-4 mb-6">
                   <div className="flex justify-between text-gray-600">
                     <span>Subtotal ({cart.reduce((sum, item) => sum + item.quantity, 0)} items)</span>
-                    <span>${cartTotal.toFixed(2)}</span>
+                    <span>₹{cartTotal.toFixed(2)}</span>
                   </div>
                   <div className="flex justify-between text-gray-600">
                     <span>Shipping</span>
-                    <span>{cartTotal >= 50 ? 'Free' : '$5.99'}</span>
+                    <span>{cartTotal >= 50 ? 'Free' : '₹5.99'}</span>
                   </div>
                   <div className="border-t border-gray-200 pt-4">
                     <div className="flex justify-between text-lg font-bold text-gray-900">
                       <span>Total</span>
-                      <span>${(cartTotal >= 50 ? cartTotal : cartTotal + 5.99).toFixed(2)}</span>
+                      <span>₹{(cartTotal >= 50 ? cartTotal : cartTotal + 5.99).toFixed(2)}</span>
                     </div>
                   </div>
                 </div>
@@ -328,7 +328,7 @@ export default function CartPage() {
                 </button>
 
                 <p className="text-xs text-gray-500 text-center mt-4">
-                  Free shipping on orders over $50
+                  Free shipping on orders over ₹50
                 </p>
               </div>
             </div>

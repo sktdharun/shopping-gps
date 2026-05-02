@@ -1,5 +1,6 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { getDb } from '../../../../lib/mongodb';
+import { ObjectId } from 'mongodb';
 import jwt from 'jsonwebtoken';
 
 export async function GET(request: NextRequest) {
@@ -37,25 +38,49 @@ export async function GET(request: NextRequest) {
     // Get total count for pagination
     const totalOrders = await db.collection('orders').countDocuments(filter);
 
-    // Get orders with pagination
-    const orders = await db.collection('orders')
-      .find(filter)
-      .sort({ createdAt: -1 })
-      .skip(skip)
-      .limit(limit)
-      .toArray();
+    // Get orders with pagination and status display
+    const orders = await db.collection('orders').aggregate([
+      { $match: filter },
+      {
+        $lookup: {
+          from: 'order_statuses',
+          localField: 'statusId',
+          foreignField: '_id',
+          as: 'statusDoc'
+        }
+      },
+      { $unwind: '$statusDoc' },
+      {
+        $project: {
+          _id: 1,
+          userId: 1,
+          items: 1,
+          addressId: 1,
+          total: 1,
+          statusId: 1,
+          status: '$statusDoc.name',
+          statusDisplay: '$statusDoc.display',
+          trackingId: 1,
+          deliveryAgent: 1,
+          createdAt: 1
+        }
+      },
+      { $sort: { createdAt: -1 } },
+      { $skip: skip },
+      { $limit: limit }
+    ]).toArray();
 
     // Get user details for each order
     const ordersWithUserDetails = await Promise.all(
       orders.map(async (order) => {
         const user = await db.collection('users').findOne(
-          { _id: order.userId },
+          { _id: new ObjectId(order.userId) },
           { projection: { firstname: true, lastname: true, email: true, mobile: true } }
         );
 
         const address = await db.collection('addresses').findOne(
-          { _id: order.addressId },
-          { projection: { name: true, addressLine1: true, addressLine2: true, city: true, state: true, pinCode: true } }
+          { _id: new ObjectId(order.addressId) },
+          { projection: { name: true, addressLine1: true, addressLine2: true, city: true, state: true, pinCode: true, mobile: true } }
         );
 
         return {
