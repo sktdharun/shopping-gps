@@ -67,26 +67,6 @@ export default function StockManagementPage() {
 
   const [selectedImages, setSelectedImages] = useState<File[]>([]);
 
-  useEffect(() => {
-    const token = localStorage.getItem('token');
-    if (token) {
-      try {
-        const payload = JSON.parse(atob(token.split('.')[1]));
-        if (payload.role !== 'admin') {
-          router.push('/');
-          return;
-        }
-        setUser(payload);
-        fetchData();
-      } catch (error) {
-        localStorage.removeItem('token');
-        router.push('/login');
-      }
-    } else {
-      router.push('/login');
-    }
-  }, [router]);
-
   const fetchData = async () => {
     try {
       const token = localStorage.getItem('token');
@@ -159,6 +139,26 @@ export default function StockManagementPage() {
     }
   };
 
+  useEffect(() => {
+    const token = localStorage.getItem('token');
+    if (token) {
+      try {
+        const payload = JSON.parse(atob(token.split('.')[1]));
+        if (payload.role !== 'admin') {
+          router.push('/');
+          return;
+        }
+        setUser(payload);
+        fetchData();
+      } catch (error) {
+        localStorage.removeItem('token');
+        router.push('/login');
+      }
+    } else {
+      router.push('/login');
+    }
+  }, [router]);
+
   const topLevelCategories = categories.filter(cat => !cat.parentId);
   const subcategories = categories.filter(cat => cat.parentId);
   const availableSubcategories = formData.categoryId ? subcategories.filter(sub => sub.parentId === formData.categoryId) : [];
@@ -189,11 +189,18 @@ export default function StockManagementPage() {
     });
 
     try {
+      const token = localStorage.getItem('token');
+      const headers: Record<string, string> = {};
+      if (token) {
+        headers.Authorization = `Bearer ${token}`;
+      }
+
       const url = editingStock ? `/api/stocks/${editingStock._id}` : '/api/stocks';
       const method = editingStock ? 'PUT' : 'POST';
 
       const response = await fetch(url, {
         method,
+        headers,
         body: formDataToSend
       });
 
@@ -244,8 +251,15 @@ export default function StockManagementPage() {
   const handleDelete = async (stockId: string) => {
     if (confirm('Are you sure you want to delete this stock?')) {
       try {
+        const token = localStorage.getItem('token');
+        const headers: Record<string, string> = {};
+        if (token) {
+          headers.Authorization = `Bearer ${token}`;
+        }
+
         const response = await fetch(`/api/stocks/${stockId}`, {
-          method: 'DELETE'
+          method: 'DELETE',
+          headers
         });
 
         if (response.ok) {

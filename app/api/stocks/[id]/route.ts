@@ -1,9 +1,8 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { getDb } from '../../../../lib/mongodb';
 import { ObjectId } from 'mongodb';
-import { promises as fs } from 'fs';
-import path from 'path';
 import { verifyToken } from '../../../../lib/auth';
+import { uploadImageToCloudinary, deleteImageFromCloudinary } from '../../../../lib/cloudinary';
 
 export async function GET(request: NextRequest, { params }: { params: Promise<{ id: string }> }) {
   try {
@@ -49,19 +48,9 @@ export async function PUT(request: NextRequest, { params }: { params: Promise<{ 
       return NextResponse.json({ message: 'Stock not found' }, { status: 404 });
     }
 
-    // Handle image uploads for updates
-    const baseDir = 'D:\\shopping';
-    try {
-      await fs.access(baseDir);
-    } catch {
-      await fs.mkdir(baseDir, { recursive: true });
-    }
-
     const categoryName = await getCategoryName(stockData.categoryId);
-    const categoryDir = path.join(baseDir, sanitizeFolderName(categoryName));
-    await fs.mkdir(categoryDir, { recursive: true });
 
-    const imagePaths: string[] = [...(stockData.images || [])]; // Keep existing images
+    const imageUrls: string[] = [...(stockData.images || [])]; // Keep existing images
     const imageFiles = [];
 
     // Collect new image files
@@ -71,23 +60,17 @@ export async function PUT(request: NextRequest, { params }: { params: Promise<{ 
       }
     }
 
-    // Save new images
+    // Upload new images to Cloudinary
     for (let i = 0; i < imageFiles.length; i++) {
       const file = imageFiles[i];
-      const fileName = `${Date.now()}_${i}_${file.name}`;
-      const filePath = path.join(categoryDir, fileName);
-
-      const buffer = Buffer.from(await file.arrayBuffer());
-      await fs.writeFile(filePath, buffer);
-
-      const relativePath = `/shopping/${sanitizeFolderName(categoryName)}/${fileName}`;
-      imagePaths.push(relativePath);
+      const imageUrl = await uploadImageToCloudinary(file, sanitizeFolderName(categoryName));
+      imageUrls.push(imageUrl);
     }
 
     // Update database
     const updateData = {
       ...stockData,
-      images: imagePaths,
+      images: imageUrls,
       updatedAt: new Date()
     };
 
@@ -118,15 +101,12 @@ export async function DELETE(request: NextRequest, { params }: { params: Promise
     const stock = await db.collection('stocks').findOne({ _id: new ObjectId(stockId) });
 
     if (stock && stock.images) {
-      // Delete image files
-      for (const imagePath of stock.images) {
+      // Delete images from Cloudinary
+      for (const imageUrl of stock.images) {
         try {
-          // Convert web path to file system path
-          const relativePath = imagePath.replace('/shopping/', '');
-          const fullPath = path.join('D:\\shopping', relativePath);
-          await fs.unlink(fullPath);
+          await deleteImageFromCloudinary(imageUrl);
         } catch (error) {
-          console.error('Error deleting image file:', error);
+          console.error('Error deleting image from Cloudinary:', error);
         }
       }
     }

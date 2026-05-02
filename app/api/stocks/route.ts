@@ -1,9 +1,8 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { getDb } from '../../../lib/mongodb';
 import { ObjectId } from 'mongodb';
-import { promises as fs } from 'fs';
-import path from 'path';
 import { verifyToken } from '../../../lib/auth';
+import { uploadImageToCloudinary } from '../../../lib/cloudinary';
 
 export async function GET(request: NextRequest) {
   try {
@@ -34,22 +33,10 @@ export async function POST(request: NextRequest) {
     const formData = await request.formData();
     const stockData = JSON.parse(formData.get('stockData') as string);
 
-    // Create directory structure for images
-    const baseDir = 'D:\\shopping';
-    try {
-      await fs.access(baseDir);
-    } catch {
-      await fs.mkdir(baseDir, { recursive: true });
-    }
-
     const categoryName = await getCategoryName(stockData.categoryId);
-    const categoryDir = path.join(baseDir, sanitizeFolderName(categoryName));
 
-    // Ensure category directory exists
-    await fs.mkdir(categoryDir, { recursive: true });
-
-    // Handle image uploads
-    const imagePaths: string[] = [];
+    // Handle image uploads to Cloudinary
+    const imageUrls: string[] = [];
     const imageFiles = [];
 
     // Collect all image files
@@ -59,25 +46,18 @@ export async function POST(request: NextRequest) {
       }
     }
 
-    // Save images
+    // Upload images to Cloudinary
     for (let i = 0; i < imageFiles.length; i++) {
       const file = imageFiles[i];
-      const fileName = `${Date.now()}_${i}_${file.name}`;
-      const filePath = path.join(categoryDir, fileName);
-
-      const buffer = Buffer.from(await file.arrayBuffer());
-      await fs.writeFile(filePath, buffer);
-
-      // Store relative path for web access
-      const relativePath = `/shopping/${sanitizeFolderName(categoryName)}/${fileName}`;
-      imagePaths.push(relativePath);
+      const imageUrl = await uploadImageToCloudinary(file, sanitizeFolderName(categoryName));
+      imageUrls.push(imageUrl);
     }
 
     // Save to database
     const db = await getDb();
     const stockDocument = {
       ...stockData,
-      images: imagePaths,
+      images: imageUrls,
       createdAt: new Date(),
       updatedAt: new Date()
     };
