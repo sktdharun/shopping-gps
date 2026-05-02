@@ -5,34 +5,52 @@ export async function POST(request: NextRequest) {
   try {
     const db = await getDb();
 
-    // Seed statuses for users
-    const userStatuses = [
+    // Seed statuses
+    const statuses = [
       { name: 'pending' },
       { name: 'approved' },
       { name: 'rejected' }
     ];
-    await db.collection('statuses').insertMany(userStatuses, { ordered: false });
+    await db.collection('statuses').insertMany(statuses, { ordered: false });
 
-    // Seed statuses for orders
+    // Clear existing order statuses and seed new ones
+    await db.collection('order_statuses').deleteMany({});
     const orderStatuses = [
       { name: 'ordered', display: 'Ordered' },
       { name: 'approved', display: 'Approved' },
-      { name: 'packaged', display: 'Packaged' },
-      { name: 'InTransit', display: 'In Transit' },
+      { name: 'packed_in_transit', display: 'Packed in Transit' },
       { name: 'delivered', display: 'Delivered' },
       { name: 'received', display: 'Received' },
       { name: 'rejected', display: 'Rejected' }
     ];
     await db.collection('order_statuses').insertMany(orderStatuses, { ordered: false });
 
-    // Seed roles
-    const roles = [
-      { name: 'user' },
-      { name: 'admin' }
-    ];
-    await db.collection('roles').insertMany(roles, { ordered: false });
+    // Update existing orders to use correct status IDs
+    const statusMap = {};
+    for (const status of orderStatuses) {
+      const doc = await db.collection('order_statuses').findOne({ name: status.name });
+      if (doc) {
+        statusMap[status.name] = doc._id;
+      }
+    }
 
-    return NextResponse.json({ message: 'Database seeded successfully' });
+    // Update orders with correct status IDs
+    for (const [statusName, statusId] of Object.entries(statusMap)) {
+      await db.collection('orders').updateMany(
+        { status: statusName },
+        { $set: { statusId: statusId } }
+      );
+    }
+
+    console.log('Database seeded successfully');
+    console.log('Order statuses:', orderStatuses);
+    console.log('Status map:', statusMap);
+
+    return NextResponse.json({
+      message: 'Database seeded successfully',
+      orderStatuses,
+      statusMap
+    });
   } catch (error: unknown) {
     console.error('Error seeding database:', error);
     return NextResponse.json({ message: 'Error seeding database' }, { status: 500 });

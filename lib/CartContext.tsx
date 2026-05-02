@@ -109,11 +109,27 @@ export function CartProvider({ children }: { children: ReactNode }) {
         return;
       }
 
+      // Fetch current cart to check existing quantity
+      const cartRes = await fetch('/api/cart', {
+        headers: { Authorization: `Bearer ${token}` }
+      });
+      let currentCart = [];
+      if (cartRes.ok) {
+        currentCart = await cartRes.json();
+      }
+
+      const existingItem = currentCart.find((item: CartItem) => item.productId === product._id);
+      const currentQuantity = existingItem ? existingItem.quantity : 0;
+
       // Validate quantity against maxQuantityPerOrder
-      const maxAllowed = product.maxQuantityPerOrder || 5;
+      const maxAllowed = product.maxQuantityPerOrder || 10;
       if (quantity > maxAllowed) {
-        console.error(`Cannot add more than ${maxAllowed} items of this product`);
-        return;
+        throw new Error(`Cannot add more than ${maxAllowed} items of this product per order`);
+      }
+
+      // Validate against stock availability
+      if (currentQuantity + quantity > product.quantity) {
+        throw new Error(`Only ${product.quantity - currentQuantity} more items available in stock`);
       }
 
       const res = await fetch('/api/cart', {
@@ -138,10 +154,11 @@ export function CartProvider({ children }: { children: ReactNode }) {
         await fetchCart();
       } else {
         const data = await res.json();
-        console.error('Error adding to cart:', data.message);
+        throw new Error(data.message || 'Error adding to cart');
       }
     } catch (error) {
       console.error('Error adding to cart:', error);
+      throw error; // Re-throw to let caller handle
     } finally {
       setLoading(false);
     }

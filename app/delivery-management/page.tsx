@@ -42,8 +42,7 @@ interface Pagination {
 const ORDER_STATUSES = [
   'ordered',
   'approved',
-  'packaged',
-  'InTransit',
+  'packed_in_transit',
   'delivered',
   'received',
   'rejected'

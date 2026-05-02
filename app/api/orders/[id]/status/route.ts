@@ -9,28 +9,28 @@ interface StatusTransition {
   allowedRoles: string[];
 }
 
-// Define allowed status transitions
+// Define allowed status transitions using display values
 const STATUS_TRANSITIONS: StatusTransition[] = [
   // User can create ordered status (but this is handled during order creation)
-  { from: [], to: 'ordered', allowedRoles: ['user'] },
+  { from: [], to: 'Ordered', allowedRoles: ['user'] },
 
   // Admin can approve ordered orders
-  { from: ['ordered'], to: 'approved', allowedRoles: ['admin'] },
+  { from: ['Ordered'], to: 'Approved', allowedRoles: ['admin'] },
 
   // Admin can reject ordered orders
-  { from: ['ordered'], to: 'rejected', allowedRoles: ['admin'] },
+  { from: ['Ordered'], to: 'Rejected', allowedRoles: ['admin'] },
 
   // Admin can pack ordered or approved orders
-  { from: ['ordered', 'approved'], to: 'packaged', allowedRoles: ['admin'] },
+  { from: ['Ordered', 'Approved'], to: 'Packaged', allowedRoles: ['admin'] },
 
   // Admin can send to transit ordered, approved, or packaged orders
-  { from: ['ordered', 'approved', 'packaged'], to: 'InTransit', allowedRoles: ['admin'] },
+  { from: ['Ordered', 'Approved', 'Packaged'], to: 'In Transit', allowedRoles: ['admin'] },
 
   // User can mark InTransit orders as received
-  { from: ['InTransit'], to: 'received', allowedRoles: ['user'] },
+  { from: ['In Transit'], to: 'Received', allowedRoles: ['user'] },
 
   // Admin can mark InTransit or received orders as delivered
-  { from: ['InTransit', 'received'], to: 'delivered', allowedRoles: ['admin'] }
+  { from: ['In Transit', 'Received'], to: 'Delivered', allowedRoles: ['admin'] }
 ];
 
 export async function PUT(request: NextRequest, { params }: { params: Promise<{ id: string }> }) {
@@ -66,16 +66,28 @@ export async function PUT(request: NextRequest, { params }: { params: Promise<{ 
       return NextResponse.json({ message: 'Access denied' }, { status: 403 });
     }
 
-    // Find valid transition
+    // Get the current status document
+    const currentStatusDoc = await db.collection('order_statuses').findOne({ _id: order.statusId });
+    if (!currentStatusDoc) {
+      return NextResponse.json({ message: 'Current status not found' }, { status: 500 });
+    }
+
+    // Get the new status document
+    const newStatusDoc = await db.collection('order_statuses').findOne({ name: newStatus });
+    if (!newStatusDoc) {
+      return NextResponse.json({ message: 'Status not found' }, { status: 500 });
+    }
+
+    // Find valid transition using display values
     const validTransition = STATUS_TRANSITIONS.find(
-      transition => transition.to === newStatus &&
-                   transition.from.includes(order.status) &&
+      transition => transition.to === newStatusDoc.display &&
+                   transition.from.includes(currentStatusDoc.display) &&
                    transition.allowedRoles.includes(decoded.role)
     );
 
     if (!validTransition) {
       return NextResponse.json({
-        message: `Invalid status transition from '${order.status}' to '${newStatus}' for role '${decoded.role}'`
+        message: `Invalid status transition from '${currentStatusDoc.display}' to '${newStatusDoc.display}' for role '${decoded.role}'`
       }, { status: 400 });
     }
 
@@ -92,7 +104,9 @@ export async function PUT(request: NextRequest, { params }: { params: Promise<{ 
 
     // Prepare update object
     const updateData: any = {
+      statusId: newStatusDoc._id,
       status: newStatus,
+      statusDisplay: newStatusDoc.display,
       updatedAt: new Date().toISOString()
     };
 

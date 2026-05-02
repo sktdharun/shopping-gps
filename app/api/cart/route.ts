@@ -28,7 +28,7 @@ export async function GET(request: NextRequest) {
           subcategoryName: item.subcategoryName,
           filterValues: item.filterValues || [],
           stockQuantity: stock?.quantity || 0,
-          maxQuantityPerOrder: stock?.maxQuantityPerOrder || 5
+          maxQuantityPerOrder: stock?.maxQuantityPerOrder || 10
         };
       })
     );
@@ -56,11 +56,35 @@ export async function POST(request: NextRequest) {
 
     const db = await getDb();
 
+    // Get product details
+    const stock = await db.collection('stocks').findOne({ _id: new ObjectId(productId), isActive: true });
+    if (!stock) {
+      return NextResponse.json({ message: 'Product not found or inactive' }, { status: 404 });
+    }
+
     // Check if item already in cart
     const existing = await db.collection('cart').findOne({
       userId: new ObjectId(userId),
       productId: new ObjectId(productId)
     });
+
+    const currentQuantity = existing ? existing.quantity : 0;
+    const newTotalQuantity = currentQuantity + quantity;
+
+    // Validate against stock availability
+    if (newTotalQuantity > stock.quantity) {
+      return NextResponse.json({
+        message: `Insufficient stock. Only ${stock.quantity - currentQuantity} more items available`
+      }, { status: 400 });
+    }
+
+    // Validate against max quantity per order
+    const maxPerOrder = stock.maxQuantityPerOrder || 10;
+    if (quantity > maxPerOrder) {
+      return NextResponse.json({
+        message: `Cannot add more than ${maxPerOrder} items of this product per order`
+      }, { status: 400 });
+    }
 
     if (existing) {
       // Update quantity

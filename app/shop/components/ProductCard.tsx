@@ -30,6 +30,7 @@ export default function ProductCard({ product, isAdmin }: ProductCardProps) {
   // Get the primary image - handle both 'image' and 'images' fields
   const primaryImage = product.image || (product.images && product.images.length > 0 ? product.images[0] : null);
   const isOutOfStock = (product.quantity || 0) <= 0;
+  const isProductDetailPage = typeof window !== 'undefined' && window.location.pathname.startsWith('/product/');
 
   const cardContent = (
     <div className={`bg-white rounded-lg shadow-sm border border-gray-200 overflow-hidden transition-all duration-300 group h-full ${isOutOfStock ? 'opacity-60' : 'hover:shadow-lg'}`}>
@@ -76,7 +77,7 @@ export default function ProductCard({ product, isAdmin }: ProductCardProps) {
             </span>
           </div>
 
-          {!isAdmin && (
+          {!isAdmin && !isProductDetailPage && (
             <button
               className={`px-4 py-2 rounded-lg text-sm font-semibold transition-all duration-200 ${
                 isOutOfStock

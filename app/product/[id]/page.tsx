@@ -83,13 +83,22 @@ export default function ProductDetailPage() {
 
     const existingCartItem = cart.find(item => item.productId === stockId);
     const currentCartQuantity = existingCartItem ? existingCartItem.quantity : 0;
-    const maxAllowedTotal = stock.maxQuantityPerOrder;
+    const maxAllowedTotal = stock.maxQuantityPerOrder || 10;
+    const availableStock = Math.max(0, stock.quantity - currentCartQuantity);
     const remainingAllowed = Math.max(0, maxAllowedTotal - currentCartQuantity);
 
-    return Math.min(remainingAllowed, stock.quantity);
+    return Math.min(availableStock, remainingAllowed);
   }, [stock, cart, stockId]);
 
   const [quantity, setQuantity] = useState(1);
+
+  const handleQuantityChange = (newQuantity: number) => {
+    const constrainedQuantity = Math.max(1, Math.min(newQuantity, remainingQuantity));
+    setQuantity(constrainedQuantity);
+  };
+
+  // Ensure quantity is valid when remaining quantity changes
+  const validQuantity = Math.min(quantity, remainingQuantity);
 
   useEffect(() => {
     const fetchData = async () => {
@@ -273,13 +282,7 @@ export default function ProductDetailPage() {
     router.back();
   };
 
-  const handleQuantityChange = (newQuantity: number) => {
-    const constrainedQuantity = Math.max(0, Math.min(newQuantity, remainingQuantity));
-    setQuantity(constrainedQuantity);
-  };
 
-  // Ensure quantity is valid when remaining quantity changes
-  const validQuantity = Math.min(quantity, remainingQuantity);
 
   if (!stockId) {
     return (
@@ -483,15 +486,16 @@ export default function ProductDetailPage() {
                 </div>
 
                 {/* Quantity Controls */}
-                {!isAdmin && (
+                {!isAdmin && remainingQuantity > 0 && (
                   <div className="mb-6">
-                    <h3 className="text-sm font-medium text-gray-900 mb-3">Quantity</h3>
+                    <h3 className="text-sm font-medium text-gray-900 mb-3">Select Quantity</h3>
                     <div className="flex items-center space-x-4">
                       <div className="flex items-center border border-gray-300 rounded-lg">
                         <button
                           onClick={() => handleQuantityChange(validQuantity - 1)}
-                          disabled={validQuantity <= 1 || remainingQuantity === 0}
+                          disabled={validQuantity <= 1}
                           className="px-3 py-2 text-gray-600 hover:bg-gray-100 disabled:opacity-50 disabled:cursor-not-allowed transition-colors"
+                          title="Decrease quantity"
                         >
                           −
                         </button>
@@ -502,6 +506,7 @@ export default function ProductDetailPage() {
                           onClick={() => handleQuantityChange(validQuantity + 1)}
                           disabled={validQuantity >= remainingQuantity}
                           className="px-3 py-2 text-gray-600 hover:bg-gray-100 disabled:opacity-50 disabled:cursor-not-allowed transition-colors"
+                          title="Increase quantity"
                         >
                           +
                         </button>
@@ -513,13 +518,19 @@ export default function ProductDetailPage() {
                           const availableToAdd = remainingQuantity;
 
                           if (currentCartQuantity > 0) {
-                            return `${currentCartQuantity} in cart, ${availableToAdd} more can be added (max ${stock.maxQuantityPerOrder} per order)`;
+                            return `${currentCartQuantity} in cart, ${availableToAdd} more can be added (max ${stock.maxQuantityPerOrder || 10} per order)`;
                           } else {
-                            return `Max ${stock.maxQuantityPerOrder} per order, ${stock.quantity} available`;
+                            return `Max ${stock.maxQuantityPerOrder || 10} per order, ${stock.quantity} available`;
                           }
                         })() : ''}
                       </span>
                     </div>
+                  </div>
+                )}
+
+                {!isAdmin && remainingQuantity === 0 && (
+                  <div className="mb-6">
+                    <div className="text-orange-600 font-semibold">No stock available to add</div>
                   </div>
                 )}
 
@@ -539,7 +550,7 @@ export default function ProductDetailPage() {
                               getCategoryName(stock.categoryId),
                             subcategoryName: resolvedFilterValues.find(fv => fv.attributeName === 'subcategory')?.displayLabel ||
                               getCategoryName(stock.subcategoryId)
-                          }, validQuantity);
+                          }, quantity);
                           setAddingToCart(false);
                           setAddedMessage(true);
                           setTimeout(() => setAddedMessage(false), 2000);

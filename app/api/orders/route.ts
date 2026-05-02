@@ -18,8 +18,10 @@ export async function GET(request: NextRequest) {
     }
 
     const db = await getDb();
+
+
     const orders = await db.collection('orders').aggregate([
-      { $match: { userId: decoded._id } },
+      { $match: { userId: new ObjectId(decoded._id) } },
       {
         $lookup: {
           from: 'order_statuses',
@@ -28,7 +30,7 @@ export async function GET(request: NextRequest) {
           as: 'statusDoc'
         }
       },
-      { $unwind: '$statusDoc' },
+      { $unwind: { path: '$statusDoc', preserveNullAndEmptyArrays: true } },
       {
         $project: {
           _id: 1,
@@ -37,8 +39,7 @@ export async function GET(request: NextRequest) {
           addressId: 1,
           total: 1,
           statusId: 1,
-          status: '$statusDoc.name',
-          statusDisplay: '$statusDoc.display',
+          status: { $ifNull: ['$statusDoc.name', 'unknown'] },
           trackingId: 1,
           deliveryAgent: 1,
           createdAt: 1
@@ -93,8 +94,7 @@ export async function POST(request: NextRequest) {
     const statusMap: Record<string, string> = {
       'ordered': 'Ordered',
       'approved': 'Approved',
-      'packaged': 'Packaged',
-      'InTransit': 'In Transit',
+      'packed_in_transit': 'Packed in Transit',
       'delivered': 'Delivered',
       'received': 'Received',
       'rejected': 'Rejected'

@@ -10,7 +10,7 @@ interface Order {
   items: any[];
   total: number;
   status: string;
-  statusDisplay?: string;
+  statusId: string;
   createdAt: string;
   trackingId?: string;
   deliveryAgent?: string;
@@ -36,6 +36,7 @@ function AccountsPageContent() {
   const [user, setUser] = useState<any>(null);
   const [orders, setOrders] = useState<Order[]>([]);
   const [addresses, setAddresses] = useState<Address[]>([]);
+  const [orderStatuses, setOrderStatuses] = useState<Array<{ _id: string; name: string; display: string }>>([]);
   const [loading, setLoading] = useState(true);
 
   useEffect(() => {
@@ -70,12 +71,15 @@ function AccountsPageContent() {
       if (activeTab === 'orders') {
         try {
           const token = localStorage.getItem('token');
-          const res = await fetch('/api/orders', {
-            headers: { Authorization: `Bearer ${token}` }
-          });
-          if (res.ok) {
-            const data = await res.json();
-            setOrders(data.orders);
+          const [ordersRes, statusesRes] = await Promise.all([
+            fetch('/api/orders', { headers: { Authorization: `Bearer ${token}` } }),
+            fetch('/api/order-statuses')
+          ]);
+          if (ordersRes.ok && statusesRes.ok) {
+            const ordersData = await ordersRes.json();
+            const statusesData = await statusesRes.json();
+            setOrders(ordersData.orders);
+            setOrderStatuses(statusesData.orderStatuses);
           }
         } catch (error) {
           console.error('Error fetching orders:', error);
@@ -160,14 +164,17 @@ function AccountsPageContent() {
                       </div>
                       <div className="text-right">
                         <p className="font-medium text-lg">💰 ₹{order.total}</p>
+                        {console.log("order " , order)}
                         <p className={`text-sm font-semibold ${
-                          order.status === 'delivered' ? 'text-green-600' :
-                          order.status === 'ordered' ? 'text-blue-600' :
-                          order.status === 'order_approved' ? 'text-green-600' :
-                          order.status === 'packed_in_transit' ? 'text-orange-600' :
+                          (orderStatuses.find(s => s._id === order.statusId)?.display || order.status).toLowerCase() === 'delivered' ? 'text-green-600' :
+                          (orderStatuses.find(s => s._id === order.statusId)?.display || order.status).toLowerCase() === 'ordered' ? 'text-blue-600' :
+                          (orderStatuses.find(s => s._id === order.statusId)?.display || order.status).toLowerCase() === 'approved' ? 'text-green-600' :
+                          (orderStatuses.find(s => s._id === order.statusId)?.display || order.status).toLowerCase() === 'packaged' ? 'text-orange-600' :
+                          (orderStatuses.find(s => s._id === order.statusId)?.display || order.status).toLowerCase() === 'received' ? 'text-purple-600' :
+                          (orderStatuses.find(s => s._id === order.statusId)?.display || order.status).toLowerCase() === 'rejected' ? 'text-red-600' :
                           'text-yellow-600'
                         }`}>
-                          {order.statusDisplay || order.status}
+                          {orderStatuses.find(s => s._id === order.statusId)?.display || order.status}
                         </p>
                       </div>
                     </div>

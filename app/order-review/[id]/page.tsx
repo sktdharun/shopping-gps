@@ -147,34 +147,34 @@ export default function OrderReviewPage() {
     );
   }
 
-  const getStatusColor = (status: string) => {
-    switch (status.toLowerCase()) {
+  const getStatusColor = (statusDisplay: string) => {
+    switch (statusDisplay.toLowerCase()) {
       case 'delivered':
         return 'bg-green-100 text-green-800 border-green-200';
-      case 'intransit':
-      case 'packed_in_transit':
+      case 'in transit':
         return 'bg-blue-100 text-blue-800 border-blue-200';
       case 'approved':
-      case 'order_approved':
         return 'bg-purple-100 text-purple-800 border-purple-200';
       case 'ordered':
         return 'bg-yellow-100 text-yellow-800 border-yellow-200';
       case 'rejected':
         return 'bg-red-100 text-red-800 border-red-200';
+      case 'packaged':
+        return 'bg-orange-100 text-orange-800 border-orange-200';
+      case 'received':
+        return 'bg-indigo-100 text-indigo-800 border-indigo-200';
       default:
         return 'bg-gray-100 text-gray-800 border-gray-200';
     }
   };
 
-  const getStatusIcon = (status: string) => {
-    switch (status.toLowerCase()) {
+  const getStatusIcon = (statusDisplay: string) => {
+    switch (statusDisplay.toLowerCase()) {
       case 'delivered':
         return '✅';
-      case 'intransit':
-      case 'packed_in_transit':
+      case 'in transit':
         return '🚚';
       case 'approved':
-      case 'order_approved':
         return '📦';
       case 'ordered':
         return '🛒';
@@ -189,29 +189,29 @@ export default function OrderReviewPage() {
     }
   };
 
-  const getAvailableStatuses = (currentStatus: string, userRole: string): string[] => {
+  const getAvailableStatuses = (currentStatusDisplay: string, userRole: string): string[] => {
     const transitions = {
       admin: {
-        ordered: ['approved', 'rejected', 'packaged', 'InTransit'],
-        approved: ['packaged', 'InTransit'],
-        packaged: ['InTransit'],
-        InTransit: ['delivered'],
-        received: ['delivered'],
-        rejected: [], // Terminal state
-        delivered: [] // Terminal state
+        'Ordered': ['approved', 'rejected', 'packaged', 'InTransit'],
+        'Approved': ['packaged', 'InTransit'],
+        'Packaged': ['InTransit'],
+        'In Transit': ['delivered'],
+        'Received': ['delivered'],
+        'Rejected': [], // Terminal state
+        'Delivered': [] // Terminal state
       },
       user: {
-        ordered: [], // User can't change from ordered
-        approved: [], // User can't change from approved
-        packaged: [], // User can't change from packaged
-        InTransit: ['received'],
-        received: [], // User can't change from received
-        rejected: [], // Terminal state
-        delivered: [] // Terminal state
+        'Ordered': [], // User can't change from ordered
+        'Approved': [], // User can't change from approved
+        'Packaged': [], // User can't change from packaged
+        'In Transit': ['received'],
+        'Received': [], // User can't change from received
+        'Rejected': [], // Terminal state
+        'Delivered': [] // Terminal state
       }
     };
 
-    return transitions[userRole as keyof typeof transitions]?.[currentStatus as keyof typeof transitions.admin] || [];
+    return transitions[userRole as keyof typeof transitions]?.[currentStatusDisplay as keyof typeof transitions.admin] || [];
   };
 
   const handleStatusUpdate = async () => {
@@ -396,9 +396,9 @@ export default function OrderReviewPage() {
                   <div className="flex flex-col md:flex-row md:items-center gap-6">
                     {/* Product Image */}
                     <div className="flex-shrink-0">
-                      {item.product?.images && item.product.images.length > 0 ? (
+                      {item.image ? (
                         <img
-                          src={item.product.images[0]}
+                          src={item.image}
                           alt={item.name}
                           className="w-24 h-24 object-cover rounded-lg shadow-sm"
                         />
@@ -459,10 +459,11 @@ export default function OrderReviewPage() {
                   <h4 className="text-xl font-bold text-gray-800">Order Total</h4>
                   <p className="text-sm text-gray-600">Including all taxes and charges</p>
                 </div>
-                <div className="text-right">
-                  <div className="text-3xl font-bold text-green-600">
-                    💰 ₹{order.total.toFixed(2)}
-                  </div>
+               <div className="text-right">
+                 <div className={`inline-flex items-center px-4 py-2 rounded-full text-sm font-semibold border ${getStatusColor(order.statusDisplay || order.status)}`}>
+                   <span className="mr-2">{getStatusIcon(order.statusDisplay || order.status)}</span>
+                   {order.statusDisplay || order.status}
+                 </div>
                 </div>
               </div>
             </div>
@@ -470,7 +471,7 @@ export default function OrderReviewPage() {
           </div>
 
           {/* Status Update Section */}
-          {user && order && order.status !== 'delivered' && order.status !== 'rejected' && getAvailableStatuses(order.status, user.role).length > 0 && (
+          {user && order && order.statusDisplay !== 'Delivered' && order.statusDisplay !== 'Rejected' && getAvailableStatuses(order.statusDisplay || order.status, user.role).length > 0 && (
             <div className="lg:basis-[32%] lg:flex-shrink-0 bg-white rounded-2xl shadow-2xl overflow-hidden border border-gray-100">
             <div className="bg-gradient-to-r from-blue-600 to-purple-600 p-6">
               <h3 className="text-xl font-bold text-white flex items-center">
@@ -495,18 +496,18 @@ export default function OrderReviewPage() {
                     <label className="block text-sm font-medium text-gray-700 mb-2">
                       New Status
                     </label>
-                    <select
-                      value={selectedStatus}
-                      onChange={(e) => setSelectedStatus(e.target.value)}
-                      className="w-full px-4 py-3 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent"
-                    >
-                      <option value="">Select new status</option>
-                      {getAvailableStatuses(order.status, user.role).map(status => (
-                        <option key={status} value={status}>
-                          {status.charAt(0).toUpperCase() + status.slice(1).replace('_', ' ')}
-                        </option>
-                      ))}
-                    </select>
+                     <select
+                       value={selectedStatus}
+                       onChange={(e) => setSelectedStatus(e.target.value)}
+                       className="w-full px-4 py-3 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent"
+                     >
+                       <option value="">Select new status</option>
+                       {getAvailableStatuses(order.statusDisplay || order.status, user.role).map(status => (
+                         <option key={status} value={status}>
+                           {status.charAt(0).toUpperCase() + status.slice(1).replace('_', ' ')}
+                         </option>
+                       ))}
+                     </select>
                   </div>
 
                   {selectedStatus === 'InTransit' && (
