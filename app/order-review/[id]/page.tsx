@@ -31,6 +31,7 @@ interface Order {
   items: OrderItem[];
   total: number;
   status: string;
+  statusDisplay?: string;
   createdAt: string;
   trackingId?: string;
   deliveryAgent?: string;

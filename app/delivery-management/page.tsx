@@ -14,6 +14,7 @@ interface Order {
   }>;
   total: number;
   status: string;
+  statusDisplay?: string;
   createdAt: string;
   user?: {
     name: string;
