@@ -26,7 +26,7 @@ export async function POST(request: NextRequest) {
     await db.collection('order_statuses').insertMany(orderStatuses, { ordered: false });
 
     // Update existing orders to use correct status IDs
-    const statusMap = {};
+    const statusMap: Record<string, any> = {};
     for (const status of orderStatuses) {
       const doc = await db.collection('order_statuses').findOne({ name: status.name });
       if (doc) {

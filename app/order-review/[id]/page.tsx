@@ -23,6 +23,7 @@ interface OrderItem {
   name: string;
   price: number;
   quantity: number;
+  image?: string;
   product: Product | null;
 }
 

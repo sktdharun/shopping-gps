@@ -164,7 +164,6 @@ function AccountsPageContent() {
                       </div>
                       <div className="text-right">
                         <p className="font-medium text-lg">💰 ₹{order.total}</p>
-                        {console.log("order " , order)}
                         <p className={`text-sm font-semibold ${
                           (orderStatuses.find(s => s._id === order.statusId)?.display || order.status).toLowerCase() === 'delivered' ? 'text-green-600' :
                           (orderStatuses.find(s => s._id === order.statusId)?.display || order.status).toLowerCase() === 'ordered' ? 'text-blue-600' :
