@@ -77,9 +77,9 @@ export default function ProductDetailPage() {
   const [user, setUser] = useState<any>(null);
   const [isAdmin, setIsAdmin] = useState(false);
   const [showSessionExpiredModal, setShowSessionExpiredModal] = useState(false);
-  // Calculate remaining quantity that can be added to cart
-  const remainingQuantity = useMemo(() => {
-    if (!stock) return 0;
+  // Calculate remaining quantity and available stock
+  const { remainingQuantity, availableStock } = useMemo(() => {
+    if (!stock) return { remainingQuantity: 0, availableStock: 0 };
 
     const existingCartItem = cart.find(item => item.productId === stockId);
     const currentCartQuantity = existingCartItem ? existingCartItem.quantity : 0;
@@ -87,7 +87,10 @@ export default function ProductDetailPage() {
     const availableStock = Math.max(0, stock.quantity - currentCartQuantity);
     const remainingAllowed = Math.max(0, maxAllowedTotal - currentCartQuantity);
 
-    return Math.min(availableStock, remainingAllowed);
+    return {
+      remainingQuantity: Math.min(availableStock, remainingAllowed),
+      availableStock
+    };
   }, [stock, cart, stockId]);
 
   const [quantity, setQuantity] = useState(1);
@@ -528,9 +531,9 @@ export default function ProductDetailPage() {
                   </div>
                 )}
 
-                {!isAdmin && remainingQuantity === 0 && (
+                {!isAdmin && availableStock === 0 && (
                   <div className="mb-6">
-                    <div className="text-orange-600 font-semibold">No stock available to add</div>
+                    <div className="text-orange-600 font-semibold">Out of Stock</div>
                   </div>
                 )}
 
